@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %} Faculty Members {% endblock %}
+
+{% block style %}
+<style>
+    .teacher-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+        transition: transform 0.3s;
+        position: relative;
+    }
+    
+    .teacher-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .teacher-photo {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 50%;
+        margin: 20px auto;
+        display: block;
+        border: 3px solid #f8f9fa;
+    }
+    
+    .teacher-info {
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .teacher-name {
+        font-weight: bold;
+        font-size: 1.3rem;
+        margin-bottom: 5px;
+    }
+    
+    .teacher-designation {
+        font-style: italic;
+        color: #6c757d;
+        margin-bottom: 15px;
+    }
+    
+    .teacher-contact {
+        margin-top: 15px;
+    }
+    
+    .teacher-contact i {
+        width: 20px;
+        color: #2D336B;
+    }
+    
+    .admin-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+    }
+    
+    .admin-controls .btn {
+        margin-left: 5px;
+        font-size: 0.8rem;
+        padding: 3px 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-0">Faculty Members</h2>
+    <div class="d-flex justify-content-end align-items-center mb-4">
+        
+        {% if current_user.is_authenticated and current_user.type == 'admin' %}
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
+            <i class="fas fa-plus"></i> Add Faculty
+        </button>
+        {% endif %}
+    </div>
+    <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+            <form method="GET" action="{{ url_for('teachers') }}" class="d-flex">
+                <input type="text" name="search" class="form-control me-2" placeholder="Search by name, designation, or department" value="{{ request.args.get('search', '') }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for teacher in teachers %}
+        <div class="col-md-4">
+            <div class="teacher-card">
+                {% if current_user.is_authenticated and current_user.type == 'admin' %}
+                <div class="admin-controls">
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editTeacherModal{{ teacher.id }}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTeacherModal{{ teacher.id }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                {% endif %}
+                
+                {% if teacher.photo %}
+                <img src="{{ url_for('static', filename='teachers/' + teacher.photo) }}" alt="{{ teacher.name }}" class="teacher-photo">
+                {% else %}
+                <img src="{{ url_for('static', filename='images/default_teacher.png') }}" alt="{{ teacher.name }}" class="teacher-photo">
+                {% endif %}
+                
+                <div class="teacher-info">
+                    <h3 class="teacher-name">{{ teacher.name }}</h3>
+                    <p class="teacher-designation">{{ teacher.designation }}</p>
+                    <p>{{ teacher.department }}</p>
+                    
+                    <div class="teacher-contact">
+                        {% if teacher.phone %}
+                        <p><i class="fas fa-phone"></i> {{ teacher.phone }}</p>
+                        {% endif %}
+                        
+                        <p><i class="fas fa-envelope"></i> {{ teacher.email }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- If search implemented and no results -->
+    {% if teachers|length == 0 %}
+    <div class="text-center my-5">
+        <p>No teachers found matching your search criteria.</p>
+        <a href="{{ url_for('teachers') }}" class="btn btn-outline-primary">View All Teachers</a>
+    </div>
+    {% endif %}
+    
+</div>
+
+
+{% if current_user.is_authenticated and current_user.type == 'admin' %}
+<!-- Add Teacher Modal -->
+<div class="modal fade" id="addTeacherModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Faculty</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('admin_teachers') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="designation" class="form-label">Designation</label>
+                        <input type="text" class="form-control" id="designation" name="designation" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="department" class="form-label">Department</label>
+                        <input type="text" class="form-control" id="department" name="department" value="Computer Science and Engineering">
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <input type="text" class="form-control" id="phone" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">Bio</label>
+                        <textarea class="form-control" id="bio" name="bio" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="research_interests" class="form-label">Research Interests</label>
+                        <textarea class="form-control" id="research_interests" name="research_interests" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="photo" class="form-label">Photo</label>
+                        <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Faculty</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Teacher Modals -->
+{% for teacher in teachers %}
+<div class="modal fade" id="editTeacherModal{{ teacher.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Teacher</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('edit_teacher', id=teacher.id) }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="edit_name{{ teacher.id }}" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="edit_name{{ teacher.id }}" name="name" value="{{ teacher.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_designation{{ teacher.id }}" class="form-label">Designation</label>
+                        <input type="text" class="form-control" id="edit_designation{{ teacher.id }}" name="designation" value="{{ teacher.designation }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_department{{ teacher.id }}" class="form-label">Department</label>
+                        <input type="text" class="form-control" id="edit_department{{ teacher.id }}" name="department" value="{{ teacher.department }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_phone{{ teacher.id }}" class="form-label">Phone Number</label>
+                        <input type="text" class="form-control" id="edit_phone{{ teacher.id }}" name="phone" value="{{ teacher.phone or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_email{{ teacher.id }}" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="edit_email{{ teacher.id }}" name="email" value="{{ teacher.email }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_bio{{ teacher.id }}" class="form-label">Bio</label>
+                        <textarea class="form-control" id="edit_bio{{ teacher.id }}" name="bio" rows="3">{{ teacher.bio or '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_research{{ teacher.id }}" class="form-label">Research Interests</label>
+                        <textarea class="form-control" id="edit_research{{ teacher.id }}" name="research_interests" rows="2">{{ teacher.research_interests or '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_photo{{ teacher.id }}" class="form-label">Photo (leave blank to keep current)</label>
+                        <input type="file" class="form-control" id="edit_photo{{ teacher.id }}" name="photo" accept="image/*">
+                        {% if teacher.photo %}
+                        <div class="mt-2">
+                            <img src="{{ url_for('static', filename='teachers/' + teacher.photo) }}" alt="Current photo" style="height: 100px; width: auto;">
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Teacher Modal -->
+<div class="modal fade" id="deleteTeacherModal{{ teacher.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>{{ teacher.name }}</strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_teacher', id=teacher.id) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Teacher navigation">
+        <ul class="pagination">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('teachers', page=pagination.prev_num, search=request.args.get('search', '')) }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in pagination.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('teachers', page=page_num, search=request.args.get('search', '')) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('teachers', page=pagination.next_num, search=request.args.get('search', '')) }}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}

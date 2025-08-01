@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Admin Login{% endblock %}
+
+{% block style %}
+<style>
+    .admin-login-container {
+        max-width: 400px;
+        margin: 50px auto;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .admin-login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .admin-login-header h2 {
+        color: #011f43;
+        margin-bottom: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .form-control:focus {
+        border-color: #011f43;
+        box-shadow: 0 0 0 0.2rem rgba(1, 31, 67, 0.25);
+    }
+
+    .btn-admin {
+        background-color: #011f43;
+        color: white;
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        font-weight: 500;
+        transition: background-color 0.3s;
+    }
+
+    .btn-admin:hover {
+        background-color: #013066;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-login-container">
+    <div class="admin-login-header">
+        <h2>Admin Login</h2>
+        <p>Please enter your credentials to continue</p>
+    </div>
+
+    <form action="/admin-login" method="POST">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" class="form-control" id="username" name="username" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+
+        <button type="submit" class="btn btn-admin">Login as Admin</button>
+    </form>
+</div>
+{% endblock %}

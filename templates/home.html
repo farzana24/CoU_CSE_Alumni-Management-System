@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block style %}
+<style>
+    /* Carousel Container Styling */
+    #galleryCarousel {
+        width: 100%;
+        margin: 0 auto;
+    }
+    .carousel-item {
+    position: relative;
+}
+
+    /* Carousel Image Styling */
+    .carousel-item img {
+        height: 500px;
+        width: 100vw;
+        object-fit: cover; /* Ensures images fill the container while maintaining aspect ratio */
+
+    }
+    .carousel-item::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Adjust opacity for darkness */
+    z-index: 1;
+}
+
+    /* Carousel Controls Styling */
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+        background-color: rgba(0, 0, 0, 0.144); /* Darker controls for visibility */
+        border-radius: 50%;
+    }
+
+    /* Indicators (dots) Styling */
+    .carousel-indicators button {
+        background-color: white;
+        border-radius: 50%;
+        width: 12px;
+        height: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Bootstrap Carousel -->
+<div id="galleryCarousel" class="carousel slide position-relative" data-bs-ride="carousel" data-bs-interval="2500">
+    <a href="login" class="btn btn-primary" style="background-color: #2D336B; position: absolute; top: 80%; left: 50%; transform: translate(-50%, -50%); z-index: 10; font-size: 36px; font-weight: 500; padding: 10px; border-radius: 20px; text-decoration: none;">Sign in</a>
+    <div class="carousel-inner">
+        {% for image in images %}
+            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                <img src="{{ url_for('static', filename='uploads/' + image) }}" class="d-block w-100" alt="Gallery Image">
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Indicators -->
+    <div class="carousel-indicators">
+        {% for image in images %}
+            <button type="button" data-bs-target="#galleryCarousel" data-bs-slide-to="{{ loop.index0 }}" 
+                    class="{% if loop.first %}active{% endif %}" aria-label="Slide {{ loop.index }}"></button>
+        {% endfor %}
+    </div>
+
+    <!-- Controls -->
+    <button class="carousel-control-prev" type="button" data-bs-target="#galleryCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#galleryCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
+</div>
+
+<!-- More Gallery Button -->
+<div class="text-center mt-4">
+    <a href="{{ url_for('gallery') }}" style="background-color: #2D336B;;" class="btn btn-primary">More Photos</a>
+    
+</div>
+
+<hr style="margin-top: 40px;">
+
+<!-- Message from the Head of The Department -->
+<section id="message" style="margin: 40px;">
+    <h2>Message from the Head of The Department of Computer Science and Engineering</h2>
+    <img src="{{ url_for('static', filename='pic/HOD.jpeg') }}" alt="HOD Photo" style="width: 150px; height: auto; border-radius: 5%; margin-bottom: 20px;">
+    <p>Dear Alumni,</p>
+    <p>We are proud of the achievements and contributions of our alumni in various fields. Your success is a testament to the quality of education and training provided by our department. We encourage you to stay connected with us and participate in our events and initiatives. Our department has a long and distinguished history, dating back to 2009. We have produced many talented graduates who are now working in leading companies around the world. We are also committed to research, and our faculty members are actively publishing in top journals and conferences.
+        
+        I believe that our department has the potential to be one of the leading CSE departments in Bangladesh. With your hard work and dedication, I am confident that we can achieve great things together.</p>
+    <p>Best regards,</p>
+    <p><strong><a href="/teachers" class="text-decoration-none text-black">Mahmudul Hasan, SMIEEE</a> </strong><br>Head of The Department of Computer Science and Engineering</p>
+</section>
+
+<!-- About Section -->
+ <hr style="margin-top: 40px;">
+<section id="about" style="margin: 40px;">
+    <h2>About Us</h2>
+    <p>Welcome to the Alumni Management System. Our platform is dedicated to connecting alumni and fostering a strong community. Whether you're looking to reconnect with old friends, network with professionals, or stay updated on alumni events, we've got you covered.</p>
+    <p style="display: inline;">Our mission is to provide a seamless and engaging experience for all alumni. Join us and be a part of our growing community!</p>
+    <a style="display: inline; text-decoration: none;" href="about" class="button">see more...</a>
+</section>
+
+
+{% endblock %}

@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% block title %} Sign Up {% endblock %}
+{% block style %}
+<style>
+    .main-cont {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-image: url(/static/pic/cou.png);
+        background-size: cover;
+        opacity: 0.9;
+        background-repeat: no-repeat;
+    }
+
+    .container {
+        color: white;
+        backdrop-filter: blur(5px);
+        background-color: rgba(0, 0, 0, 0.2);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        text-align: center;
+    }
+
+    .container h2 {
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+        text-align: left;
+        position: relative;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .btn-primary {
+        background-color: #3333ae;
+        color: #ffffff;
+    }
+
+    .btn-primary:hover {
+        background-color: #12122d;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: #ffffff;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+
+    #password-requirements {
+        z-index: 1;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    .form-group:focus-within #password-requirements {
+        opacity: 1;
+    }
+
+    .card {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .small {
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+
+   
+    .toggle-password-btn {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        background: none;
+        border: none;
+        padding: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .eye-icon {
+        width: 20px;
+        height: 20px;
+        filter: invert(1);
+        /* Makes the SVG white */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-cont">
+    <div class="container">
+        <h2>Sign Up</h2>
+        <form action="/signup" method="POST" id="signupForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('password')">
+                    <img src="{{ url_for('static', filename='symbols/non_visible.svg') }}" alt="Show/Hide Password"
+                        class="eye-icon">
+                </button>
+                <div id="password-requirements" class="position-absolute start-100 translate-middle-y"
+                    style="margin-left: 10px; width: 250px; top: 50%;">
+                    <div class="card bg-dark text-white">
+                        <div class="card-header">
+                            Password must contain:
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                <li id="length" class="small">❌ At least 8 characters</li>
+                                <li id="uppercase" class="small">❌ One uppercase letter</li>
+                                <li id="lowercase" class="small">❌ One lowercase letter</li>
+                                <li id="number" class="small">❌ One number</li>
+                                <li id="special" class="small">❌ One special character</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('confirmPassword')">
+                    <img src="{{ url_for('static', filename='symbols/non_visible.svg') }}" alt="Show/Hide Password"
+                        class="eye-icon">
+                </button>
+            </div>
+            <button type="submit" class="btn btn-primary">Sign Up</button>
+        </form>
+        <button onclick="location.href='/login'" class="btn btn-secondary">Back to Login</button>
+    </div>
+</div>
+
+<script>
+
+    function togglePasswordVisibility(id) {
+        const input = document.getElementById(id);
+        const button = input.nextElementSibling;
+        const icon = button.querySelector('.eye-icon');
+
+        if (input.type === "password") {
+            input.type = "text";
+            icon.src = "{{ url_for('static', filename='symbols/visible.svg') }}";
+        } else {
+            input.type = "password";
+            icon.src = "{{ url_for('static', filename='symbols/non_visible.svg') }}";
+        }
+    }
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const requirements = {
+        length: document.getElementById('length'),
+        uppercase: document.getElementById('uppercase'),
+        lowercase: document.getElementById('lowercase'),
+        number: document.getElementById('number'),
+        special: document.getElementById('special')
+    };
+
+    passwordInput.addEventListener('input', function () {
+        const password = this.value;
+
+        // Check length
+        if (password.length >= 8) {
+            requirements.length.innerHTML = '✅ At least 8 characters';
+        } else {
+            requirements.length.innerHTML = '❌ At least 8 characters';
+        }
+
+        // Check uppercase
+        if (/[A-Z]/.test(password)) {
+            requirements.uppercase.innerHTML = '✅ One uppercase letter';
+        } else {
+            requirements.uppercase.innerHTML = '❌ One uppercase letter';
+        }
+
+        // Check lowercase
+        if (/[a-z]/.test(password)) {
+            requirements.lowercase.innerHTML = '✅ One lowercase letter';
+        } else {
+            requirements.lowercase.innerHTML = '❌ One lowercase letter';
+        }
+
+        // Check number
+        if (/[0-9]/.test(password)) {
+            requirements.number.innerHTML = '✅ One number';
+        } else {
+            requirements.number.innerHTML = '❌ One number';
+        }
+
+        // Check special character
+        if (/[!@#$%^&*()_+\-=\[\]{};:,.<>?]/.test(password)) {
+            requirements.special.innerHTML = '✅ One special character';
+        } else {
+            requirements.special.innerHTML = '❌ One special character';
+        }
+    });
+
+    document.getElementById('signupForm').addEventListener('submit', function (e) {
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            alert('Passwords do not match!');
+            return;
+        }
+
+        if (
+            password.length < 8 ||
+            !/[A-Z]/.test(password) ||
+            !/[a-z]/.test(password) ||
+            !/[0-9]/.test(password) ||
+            !/[!@#$%^&*()_+\-=\[\]{};:,.<>?]/.test(password)
+        ) {
+            e.preventDefault();
+            alert('Please meet all password requirements');
+        }
+
+    });
+</script>
+{% endblock %}

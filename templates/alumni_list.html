@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %} Alumni List {% endblock %}
+
+{% block style %}
+<style>
+    #title {
+        text-align: center;
+        color: #333;
+        margin-top: 25px;
+        margin-bottom: 30px;
+    }
+
+    .alumni-box {
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+        text-align: center;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+
+    .alumni-box:hover {
+        transform: translateY(-5px);
+    }
+
+    .alumni-pic {
+        border-radius: 50%;
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        margin-bottom: 15px;
+    }
+
+    .container {
+        width: 90%;
+        margin: auto;
+        padding: 20px;
+    }
+
+    .modal-body i {
+        width: 25px;
+    }
+
+    .social-links a {
+        text-decoration: none;
+        color: #0d6efd;
+    }
+
+    .social-links a:hover {
+        text-decoration: underline;
+    }
+
+    .profile-section {
+        margin-bottom: 20px;
+    }
+
+    .profile-section h5 {
+        color: #333;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+    }
+
+    .alumni-box p i {
+        margin-right: 5px;
+        color: #666;
+    }
+
+    .alumni-box p:last-child {
+        margin-bottom: 0;
+        font-size: 0.9em;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 id="title">Alumni List</h2>
+<div class="d-flex justify-content-center mb-4">
+    <form method="GET" action="{{ url_for('alumni_list') }}" class="d-flex w-50">
+        <input type="text" name="search" class="form-control me-2"
+            placeholder="Search alumni by name, batch, or company" value="{{ request.args.get('search', '') }}">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+</div>
+<div class="container">
+    <div class="row">
+        {% for alumnus in alumni %}
+        <div class="col-md-6 mb-4">
+            <div class="alumni-box" data-bs-toggle="modal" data-bs-target="#alumniModal{{ alumnus.id }}">
+                {% if alumnus.alumni_pic %}
+                <img src="{{ url_for('static', filename='alumni/' + alumnus.alumni_pic) }}"
+                    alt="{{ alumnus.first_name }}'s Picture" class="alumni-pic">
+                {% else %}
+                <img src="{{ url_for('static', filename='alumni/default.png') }}" alt="Default Profile Picture"
+                    class="alumni-pic">
+                {% endif %}
+                <h3>{{ alumnus.first_name }} {{ alumnus.last_name }}</h3>
+                <p>Batch: {{ alumnus.cse_batch }}</p>
+                {% if alumnus.position %}
+                <p>Current Job: {{ alumnus.position }} at {{ alumnus.company_name }}</p>
+                {% else %}
+                <p>Current Job: Not Available</p>
+                {% endif %}
+
+                <p><i class="fas fa-envelope"></i> {{ alumnus.user.email }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% for alumnus in alumni %}
+<!-- Modal for each alumni -->
+<div class="modal fade" id="alumniModal{{ alumnus.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ alumnus.first_name }} {{ alumnus.last_name }}'s Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        {% if alumnus.alumni_pic %}
+                        <img src="{{ url_for('static', filename='alumni/' + alumnus.alumni_pic) }}"
+                            alt="{{ alumnus.first_name }}'s Picture" class="alumni-pic mb-3">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='alumni/default.png') }}" alt="Default Profile Picture"
+                            class="alumni-pic mb-3">
+                        {% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <div class="profile-section">
+                            <h5>Personal Information</h5>
+                            <p><strong>Batch:</strong> {{ alumnus.cse_batch }}</p>
+                            <p><strong>Blood Group:</strong> {{ alumnus.blood_group }}</p>
+                            <p><strong>Gender:</strong> {{ alumnus.gender }}</p>
+                            <p><strong>Email:</strong> {{ alumnus.user.email }}</p>
+                        </div>
+                        <div class="profile-section">
+                            <h5>Professional Information</h5>
+                            <p><strong>Company:</strong> {{ alumnus.company_name }}</p>
+                            <p><strong>Position:</strong> {{ alumnus.position }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section social-links">
+                    <h5>Professional Profiles</h5>
+                    {% if alumnus.linkedin_url or alumnus.github_url %}
+                    {% if alumnus.linkedin_url %}
+                    <p>
+                        <i class="fab fa-linkedin fa-lg text-primary"></i>
+                        <a href="{{ alumnus.linkedin_url }}" target="_blank">LinkedIn Profile</a>
+                    </p>
+                    {% endif %}
+                    {% if alumnus.github_url %}
+                    <p>
+                        <i class="fab fa-github fa-lg"></i>
+                        <a href="{{ alumnus.github_url }}" target="_blank">GitHub Profile</a>
+                    </p>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted">No professional profiles added</p>
+                    {% endif %}
+                </div>
+
+                <div class="profile-section social-links">
+                    <h5>Academic Profiles</h5>
+                    {% if alumnus.research_gate_url or alumnus.google_scholar_url or alumnus.orcid_url %}
+                    {% if alumnus.research_gate_url %}
+                    <p>
+                        <i class="fas fa-flask fa-lg text-success"></i>
+                        <a href="{{ alumnus.research_gate_url }}" target="_blank">ResearchGate Profile</a>
+                    </p>
+                    {% endif %}
+                    {% if alumnus.google_scholar_url %}
+                    <p>
+                        <i class="fas fa-graduation-cap fa-lg text-warning"></i>
+                        <a href="{{ alumnus.google_scholar_url }}" target="_blank">Google Scholar Profile</a>
+                    </p>
+                    {% endif %}
+                    {% if alumnus.orcid_url %}
+                    <p>
+                        <i class="fas fa-id-card fa-lg text-info"></i>
+                        <a href="{{ alumnus.orcid_url }}" target="_blank">ORCID Profile</a>
+                    </p>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted">No academic profiles added</p>
+                    {% endif %}
+                </div>
+
+                {% if alumnus.personal_website %}
+                <div class="profile-section social-links">
+                    <h5>Personal Website</h5>
+                    <p>
+                        <i class="fas fa-globe fa-lg text-secondary"></i>
+                        <a href="{{ alumnus.personal_website }}" target="_blank">{{ alumnus.personal_website }}</a>
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                {% if current_user.is_authenticated and current_user.type == 'admin' %}
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal"
+                    data-bs-target="#deleteAlumniModal{{ alumnus.id }}">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_authenticated and current_user.type == 'admin' %}
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteAlumniModal{{ alumnus.id }}" tabindex="-1"
+    aria-labelledby="deleteAlumniModalLabel{{ alumnus.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteAlumniModalLabel{{ alumnus.id }}">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete {{ alumnus.first_name }} {{ alumnus.last_name }}'s profile? This will
+                permanently delete:
+                <ul>
+                    <li>User account</li>
+                    <li>Alumni details</li>
+                    <li>Profile photo</li>
+                </ul>
+                This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('admin_delete_alumni', id=alumnus.id) }}" method="POST"
+                    style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Alumni</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+<!-- Update pagination links to include search parameter -->
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Alumni navigation">
+        <ul class="pagination">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link"
+                    href="{{ url_for('alumni_list', page=pagination.prev_num, search=request.args.get('search', '')) }}"
+                    aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for page_num in pagination.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+            {% if page_num %}
+            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                <a class="page-link"
+                    href="{{ url_for('alumni_list', page=page_num, search=request.args.get('search', '')) }}">{{
+                    page_num }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                    href="{{ url_for('alumni_list', page=pagination.next_num, search=request.args.get('search', '')) }}"
+                    aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}

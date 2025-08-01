@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile{% endblock %}
+{% block style %}
+<style>
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    input[type="url"]::placeholder {
+        color: #999;
+        font-size: 0.875rem;
+    }
+
+    .mb-3 {
+        margin-bottom: 1.5rem !important;
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <h1 class="text-center mt-4 mb-4">Edit Profile</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="first_name" class="form-label">First Name</label>
+            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ alumni_details.first_name }}">
+        </div>
+        <div class="mb-3">
+            <label for="last_name" class="form-label">Last Name</label>
+            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ alumni_details.last_name }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="date_of_birth" class="form-label">Date of Birth</label>
+            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+                value="{{ alumni_details.date_of_birth.strftime('%Y-%m-%d') }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="blood_group" class="form-label">Blood Group</label>
+            <input type="text" class="form-control" id="blood_group" name="blood_group" value="{{ alumni_details.blood_group }}" >
+        </div>
+        <div class="mb-3">
+            <label for="gender" class="form-label">Gender</label>
+            <select class="form-select" id="gender" name="gender" required>
+                <option value="Male" {% if alumni_details.gender == 'Male' %}selected{% endif %}>Male</option>
+                <option value="Female" {% if alumni_details.gender == 'Female' %}selected{% endif %}>Female</option>
+                <option value="Other" {% if alumni_details.gender == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="cse_batch" class="form-label">CSE Batch</label>
+            <input type="text" class="form-control" id="cse_batch" name="cse_batch" value="{{ alumni_details.cse_batch }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="company_name" class="form-label">Company Name</label>
+            <input type="text" class="form-control" id="company_name" name="company_name" value="{{ alumni_details.company_name }}" >
+        </div>
+        <div class="mb-3">
+            <label for="position" class="form-label">Position</label>
+            <input type="text" class="form-control" id="position" name="position" value="{{ alumni_details.position }}" >
+        </div>
+        <div class="mb-3">
+            <label for="alumni_pic" class="form-label">Profile Picture</label>
+            <input type="file" class="form-control" id="alumni_pic" name="alumni_pic" accept="image/*">
+        </div>
+        <div class="mb-3">
+            <label for="linkedin_url" class="form-label">LinkedIn Profile URL</label>
+            <input type="url" class="form-control" id="linkedin_url" name="linkedin_url" 
+                   value="{{ alumni_details.linkedin_url }}" placeholder="https://linkedin.com/in/username">
+        </div>
+        <div class="mb-3">
+            <label for="github_url" class="form-label">GitHub Profile URL</label>
+            <input type="url" class="form-control" id="github_url" name="github_url" 
+                   value="{{ alumni_details.github_url }}" placeholder="https://github.com/username">
+        </div>
+        <div class="mb-3">
+            <label for="research_gate_url" class="form-label">ResearchGate Profile URL</label>
+            <input type="url" class="form-control" id="research_gate_url" name="research_gate_url" 
+                   value="{{ alumni_details.research_gate_url }}" placeholder="https://researchgate.net/profile/username">
+        </div>
+        <div class="mb-3">
+            <label for="google_scholar_url" class="form-label">Google Scholar Profile URL</label>
+            <input type="url" class="form-control" id="google_scholar_url" name="google_scholar_url" 
+                   value="{{ alumni_details.google_scholar_url }}" placeholder="https://scholar.google.com/citations">
+        </div>
+        <div class="mb-3">
+            <label for="orcid_url" class="form-label">ORCID Profile URL</label>
+            <input type="url" class="form-control" id="orcid_url" name="orcid_url" 
+                   value="{{ alumni_details.orcid_url }}" placeholder="https://orcid.org/xxxx-xxxx-xxxx-xxxx">
+        </div>
+        <div class="mb-3">
+            <label for="personal_website" class="form-label">Personal Website URL</label>
+            <input type="url" class="form-control" id="personal_website" name="personal_website" 
+                   value="{{ alumni_details.personal_website }}" placeholder="https://example.com">
+        </div>
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Update Profile</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

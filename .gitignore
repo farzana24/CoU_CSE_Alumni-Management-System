@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+myvenv/
+env/
+ENV/
+
+# VSCode settings
+.vscode/
+
+# Flask/Migrations
+migrations/
+
+# Temporary files
+tempCodeRunnerFile.py
+
+# Log files
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python env files
+*.env
+
+# Cache
+*.cache
+
+# pyinstaller
+dist/
+build/
+*.spec

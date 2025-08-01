@@ -1,0 +1,66 @@
+<div class="mb-3">
+    <label for="title" class="form-label">Job Title</label>
+    <input type="text" class="form-control" id="title" name="title" required 
+           value="{{ job.title if job else '' }}">
+</div>
+<div class="mb-3">
+    <label for="company" class="form-label">Company</label>
+    <input type="text" class="form-control" id="company" name="company" required 
+           value="{{ job.company if job else '' }}">
+</div>
+<div class="mb-3">
+    <label for="location" class="form-label">Location</label>
+    <input type="text" class="form-control" id="location" name="location" required 
+           value="{{ job.location if job else '' }}">
+</div>
+<div class="mb-3">
+    <label for="description{% if job %}{{ job.id }}{% endif %}" class="form-label">Job Description</label>
+    <div id="description{% if job %}{{ job.id }}{% endif %}"></div>
+    <input type="hidden" name="description" value="{{ job.description if job else '' }}" required>
+</div>
+<div class="mb-3">
+    <label for="requirements{% if job %}{{ job.id }}{% endif %}" class="form-label">Requirements</label>
+    <div id="requirements{% if job %}{{ job.id }}{% endif %}"></div>
+    <input type="hidden" name="requirements" value="{{ job.requirements if job else '' }}" required>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label for="employment_type" class="form-label">Employment Type</label>
+        <select class="form-select" id="employment_type" name="employment_type" required>
+            <option value="">Select type</option>
+            <option value="Full-time" {% if job and job.employment_type == 'Full-time' %}selected{% endif %}>Full-time</option>
+            <option value="Part-time" {% if job and job.employment_type == 'Part-time' %}selected{% endif %}>Part-time</option>
+            <option value="Contract" {% if job and job.employment_type == 'Contract' %}selected{% endif %}>Contract</option>
+            <option value="Internship" {% if job and job.employment_type == 'Internship' %}selected{% endif %}>Internship</option>
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label for="experience_level" class="form-label">Experience Level</label>
+        <select class="form-select" id="experience_level" name="experience_level" required>
+            <option value="">Select level</option>
+            <option value="Entry Level" {% if job and job.experience_level == 'Entry Level' %}selected{% endif %}>Entry Level</option>
+            <option value="Mid Level" {% if job and job.experience_level == 'Mid Level' %}selected{% endif %}>Mid Level</option>
+            <option value="Senior Level" {% if job and job.experience_level == 'Senior Level' %}selected{% endif %}>Senior Level</option>
+        </select>
+    </div>
+</div>
+<div class="mb-3">
+    <label for="salary_range" class="form-label">Salary Range (Optional)</label>
+    <input type="text" class="form-control" id="salary_range" name="salary_range" 
+           value="{{ job.salary_range if job else '' }}">
+</div>
+<div class="mb-3">
+    <label for="apply_url" class="form-label">Application URL (Optional)</label>
+    <input type="url" class="form-control" id="apply_url" name="apply_url" 
+           value="{{ job.apply_url if job else '' }}">
+</div>
+<div class="mb-3">
+    <label for="contact_email" class="form-label">Contact Email (Optional)</label>
+    <input type="email" class="form-control" id="contact_email" name="contact_email" 
+           value="{{ job.contact_email if job else '' }}">
+</div>
+<div class="mb-3">
+    <label for="deadline" class="form-label">Application Deadline (Optional)</label>
+    <input type="date" class="form-control" id="deadline" name="deadline" 
+           value="{{ job.deadline.strftime('%Y-%m-%d') if job and job.deadline else '' }}">
+</div>

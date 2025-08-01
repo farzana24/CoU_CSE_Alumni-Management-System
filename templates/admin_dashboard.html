@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block style %}
+<style>
+    .dashboard-container {
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #011f43;
+    }
+
+    .action-buttons {
+        margin-bottom: 30px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        background: #011f43;
+        color: white !important;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: background-color 0.3s;
+    }
+
+    .action-btn:hover {
+        background: #013066;
+    }
+
+    .recent-activity {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .table {
+        margin-top: 15px;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table th {
+        background-color: #011f43;
+        color: white;
+        padding: 12px;
+        text-align: left;
+    }
+
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .btn-sm {
+        padding: 5px 10px;
+        font-size: 12px;
+        margin: 0 2px;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white !important;
+        text-decoration: none;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn:hover {
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2 class="mb-4">Admin Dashboard</h2>
+
+    <div class="stats-grid">
+
+        <div class="stat-card">
+            <h3>Total Alumni</h3>
+            <p class="stat-number">{{ alumni_count }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Pending Contacts</h3>
+            <p class="stat-number">{{ contacts|length if contacts else 0 }}</p>
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <a href="{{ url_for('news') }}" class="action-btn">Add News</a>
+        <a href="{{ url_for('event_list') }}" class="action-btn">Add Event</a>
+        <a href="{{ url_for('job_opportunities') }}" class="action-btn">Manage Jobs</a>
+        <a href="{{ url_for('teachers') }}" class="action-btn">Manage faculty</a>
+        <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+            <i class="fas fa-user-plus"></i> Add New Admin
+        </button>
+    </div>
+
+    {% if current_user.is_super_admin %}
+    <div class="recent-activity">
+        <div>
+            <h4>Manage Administrators</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Created At</th>
+                            <th>Last Login</th>
+                            <th>Admin Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for admin in admin_list %}
+                        <tr>
+                            <td>{{ admin.username }}</td>
+                            <td>{{ admin.email }}</td>
+                            <td>{{ admin.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ admin.last_login.strftime('%Y-%m-%d %H:%M') if admin.last_login else 'Never' }}</td>
+                            <td>{{ 'Super Admin' if admin.is_super_admin else 'Admin' }}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                    data-bs-target="#deleteAdminModal{{ admin.id }}">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Admin Confirmation Modals -->
+    {% for admin in admin_list %}
+    <div class="modal fade" id="deleteAdminModal{{ admin.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Admin Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the admin <strong>{{ admin.username }}</strong>?</p>
+                    <p class="text-danger">This action cannot be undone!</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form action="{{ url_for('delete_admin', id=admin.id) }}" method="POST" style="display: inline;">
+                        <button type="submit" class="btn btn-danger">Delete Admin</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="recent-activity">
+        <h3>All Alumni</h3>
+        {% if alumni_pagination.items %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Batch</th>
+                    <th>Current Position</th>
+                    <th>Company</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alumnus in alumni_pagination.items %}
+                <tr>
+                    <td>{{ alumnus.first_name }} {{ alumnus.last_name }}</td>
+                    <td>{{ alumnus.cse_batch }}</td>
+                    <td>{{ alumnus.position }}</td>
+                    <td>{{ alumnus.company_name }}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal"
+                            data-bs-target="#viewAlumniModal{{ alumnus.id }}">
+                            View
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                            data-bs-target="#deleteAlumniModal{{ alumnus.id }}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Add pagination controls -->
+        <div class="d-flex justify-content-center mt-4">
+            <nav aria-label="Alumni pagination">
+                <ul class="pagination">
+                    {% if alumni_pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_dashboard', page=alumni_pagination.prev_num) }}"
+                            aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in alumni_pagination.iter_pages(left_edge=2, left_current=2, right_current=2,
+                    right_edge=2) %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == alumni_pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('admin_dashboard', page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if alumni_pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_dashboard', page=alumni_pagination.next_num) }}"
+                            aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% else %}
+        <p class="text-muted">No alumni records found.</p>
+        {% endif %}
+    </div>
+
+    <div class="recent-activity">
+        <h3>Recent Contact Messages</h3>
+        {% if contacts %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Message</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contact in contacts[-5:] %}
+                <tr>
+                    <td>{{ contact.name }}</td>
+                    <td>{{ contact.email }}</td>
+                    <td>{{ contact.message[:50] }}{% if contact.message|length > 50 %}...{% endif %}</td>
+                    <td>
+                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to={{ contact.email }}&su=Reply: CSE Alumni Association Contact Message&body=Dear {{ contact.name }}, %0D%0A%0D%0AThank you for contacting us. %0D%0A%0D%0ARegarding your message:%0D%0A{{ contact.message }}%0D%0A%0D%0ABest regards,%0D%0ACSE Alumni Association"
+                            class="btn btn-sm btn-primary me-2" target="_blank"
+                            title="Reply to {{ contact.name }} via Gmail">
+                            <i class="fas fa-envelope"></i> Reply
+                        </a>
+                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                            data-bs-target="#deleteContactModal{{ contact.id }}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted">No contact messages found.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% for alumnus in alumni_pagination.items %}
+<div class="modal fade" id="viewAlumniModal{{ alumnus.id }}" tabindex="-1"
+    aria-labelledby="viewAlumniModalLabel{{ alumnus.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewAlumniModalLabel{{ alumnus.id }}">Alumni Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        {% if alumnus.alumni_pic %}
+                        <img src="{{ url_for('static', filename='alumni/' + alumnus.alumni_pic) }}"
+                            alt="{{ alumnus.first_name }}'s Picture" class="img-fluid rounded-circle mb-2"
+                            style="width: 200px; height: 200px; object-fit: cover;">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='alumni/default.png') }}" alt="Default Profile Picture"
+                            class="img-fluid rounded-circle mb-2"
+                            style="width: 200px; height: 200px; object-fit: cover;">
+                        {% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <h4>{{ alumnus.first_name }} {{ alumnus.last_name }}</h4>
+                        <p class="text-muted">{{ alumnus.position }} at {{ alumnus.company_name }}</p>
+
+                        <div class="details-grid">
+                            <div class="detail-item">
+                                <strong>Email:</strong> {{ alumnus.user.email }}
+                            </div>
+                            <div class="detail-item">
+                                <strong>Batch:</strong> {{ alumnus.cse_batch }}
+                            </div>
+                            <div class="detail-item">
+                                <strong>Gender:</strong> {{ alumnus.gender }}
+                            </div>
+                            <div class="detail-item">
+                                <strong>Blood Group:</strong> {{ alumnus.blood_group }}
+                            </div>
+                            <div class="detail-item">
+                                <strong>Date of Birth:</strong> {{ alumnus.date_of_birth.strftime('%B %d, %Y') }}
+                            </div>
+                        </div>
+
+                        <div class="social-links mt-3">
+                            {% if alumnus.linkedin_url %}
+                            <a href="{{ alumnus.linkedin_url }}" target="_blank"
+                                class="btn btn-sm btn-outline-primary me-2">
+                                LinkedIn
+                            </a>
+                            {% endif %}
+
+                            {% if alumnus.github_url %}
+                            <a href="{{ alumnus.github_url }}" target="_blank" class="btn btn-sm btn-outline-dark me-2">
+                                GitHub
+                            </a>
+                            {% endif %}
+
+                            {% if alumnus.research_gate_url %}
+                            <a href="{{ alumnus.research_gate_url }}" target="_blank"
+                                class="btn btn-sm btn-outline-info me-2">
+                                ResearchGate
+                            </a>
+                            {% endif %}
+
+                            {% if alumnus.google_scholar_url %}
+                            <a href="{{ alumnus.google_scholar_url }}" target="_blank"
+                                class="btn btn-sm btn-outline-success me-2">
+                                Google Scholar
+                            </a>
+                            {% endif %}
+
+                            {% if alumnus.orcid_url %}
+                            <a href="{{ alumnus.orcid_url }}" target="_blank"
+                                class="btn btn-sm btn-outline-secondary me-2">
+                                ORCID
+                            </a>
+                            {% endif %}
+
+                            {% if alumnus.personal_website %}
+                            <a href="{{ alumnus.personal_website }}" target="_blank"
+                                class="btn btn-sm btn-outline-dark">
+                                Personal Website
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteAlumniModal{{ alumnus.id }}" tabindex="-1"
+    aria-labelledby="deleteAlumniModalLabel{{ alumnus.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteAlumniModalLabel{{ alumnus.id }}">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete {{ alumnus.first_name }} {{ alumnus.last_name }}'s profile? This will
+                permanently delete:
+                <ul>
+                    <li>User account</li>
+                    <li>Alumni details</li>
+                    <li>Profile photo</li>
+                </ul>
+                This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('admin_delete_alumni', id=alumnus.id) }}" method="POST"
+                    style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Alumni</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Delete Contact Modals -->
+{% for contact in contacts[-5:] %}
+<div class="modal fade" id="deleteContactModal{{ contact.id }}" tabindex="-1"
+    aria-labelledby="deleteContactModalLabel{{ contact.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteContactModalLabel{{ contact.id }}">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this contact message from {{ contact.name }}? This action cannot be
+                undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('admin_delete_contact', id=contact.id) }}" method="POST"
+                    style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Contact</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+<div class="modal fade" id="addAdminModal" tabindex="-1" aria-labelledby="addAdminModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addAdminModalLabel">Add New Admin</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('add_admin') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="admin_email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="admin_email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="admin_username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="admin_username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="admin_password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="admin_password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="admin_confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="admin_confirm_password" name="confirm_password"
+                            required>
+                    </div>
+                    {% if current_user.is_super_admin %}
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_super_admin" name="is_super_admin">
+                        <label class="form-check-label" for="is_super_admin">Make this admin a Super Admin</label>
+                        <small class="form-text text-muted d-block">Super Admins can manage other admin accounts</small>
+                    </div>
+                    {% endif %}
+                    <div class="alert alert-info">
+                        <small>This will create a new administrator account with full system access.</small>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Admin</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+{% block title %}Events{% endblock %}
+
+{% block style %}
+<style>
+    .events-container {
+        padding: 20px;
+    }
+
+    .card {
+        transition: transform 0.2s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+    }
+
+    .event-content {
+        line-height: 1.6;
+    }
+
+    .modal-body img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .event-meta {
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    .event-date {
+        font-weight: bold;
+        color: #007bff;
+    }
+
+    .deadline {
+        color: #dc3545;
+    }
+
+    .upcoming-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="events-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if current_user.is_authenticated and current_user.type == 'admin' %}
+    <div class="text-end mb-4">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEventModal">
+            <i class="fas fa-plus"></i> Add Event
+        </button>
+    </div>
+    {% endif %}
+
+    <h2 class="text-center mb-4">Events</h2>
+    <hr>
+
+    <div class="row">
+        {% if events %}
+            {% for event in events %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if event.is_upcoming %}
+                    <div class="upcoming-badge">
+                        <span class="badge bg-success">Upcoming</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if event.image %}
+                    <img src="{{ url_for('static', filename='events/' + event.image) }}" 
+                         class="card-img-top" alt="{{ event.title }}"
+                         style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    
+                    <div class="card-body">
+                        <h5 class="card-title">{{ event.title }}</h5>
+                        <div class="event-meta mb-3">
+                            <p class="mb-1">
+                                <i class="fas fa-calendar"></i> 
+                                <span class="event-date">{{ event.formatted_event_date }}</span>
+                            </p>
+                            <p class="mb-1">
+                                <i class="fas fa-map-marker-alt"></i> {{ event.location }}
+                            </p>
+                            {% if event.max_participants %}
+                            <p class="mb-1">
+                                <i class="fas fa-users"></i> Max Participants: {{ event.max_participants }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <p class="card-text">{{ event.description[:100] | striptags }}...</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" 
+                                    data-bs-target="#eventModal{{ event.id }}">
+                                View Details
+                            </button>
+                            
+                            {% if current_user.is_authenticated and current_user.type == 'admin' %}
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" 
+                                        data-bs-target="#editEventModal{{ event.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" 
+                                        data-bs-target="#deleteEventModal{{ event.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if event.registration_deadline %}
+                    <div class="card-footer">
+                        <small class="deadline">
+                            <i class="fas fa-clock"></i> Registration Deadline: {{ event.formatted_registration_deadline }}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Event Detail Modal -->
+            <div class="modal fade" id="eventModal{{ event.id }}" tabindex="-1" aria-labelledby="eventModalLabel{{ event.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="eventModalLabel{{ event.id }}">{{ event.title }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if event.image %}
+                            <img src="{{ url_for('static', filename='events/' + event.image) }}"
+                                class="img-fluid mb-3" alt="{{ event.title }}">
+                            {% endif %}
+                            <div class="event-meta mb-4">
+                                <p><i class="fas fa-calendar"></i> <strong>Date & Time:</strong> {{ event.formatted_event_date }}</p>
+                                <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> {{ event.location }}</p>
+                                {% if event.max_participants %}
+                                <p><i class="fas fa-users"></i> <strong>Maximum Participants:</strong> {{ event.max_participants }}</p>
+                                {% endif %}
+                                {% if event.registration_deadline %}
+                                <p class="deadline"><i class="fas fa-clock"></i> <strong>Registration Deadline:</strong> {{ event.formatted_registration_deadline }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="event-content">
+                                {{ event.description | safe }}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Event Modal -->
+            <div class="modal fade" id="editEventModal{{ event.id }}" tabindex="-1" aria-labelledby="editEventModalLabel{{ event.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editEventModalLabel{{ event.id }}">Edit Event</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form action="{{ url_for('edit_event', id=event.id) }}" method="POST" enctype="multipart/form-data" class="event-form">
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="title{{ event.id }}" class="form-label">Title</label>
+                                    <input type="text" class="form-control" id="title{{ event.id }}" name="title" 
+                                           value="{{ event.title }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editor{{ event.id }}" class="form-label">Description</label>
+                                    <div id="editor{{ event.id }}" class="editor">{{ event.description | safe }}</div>
+                                    <input type="hidden" name="description" id="description{{ event.id }}">
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="event_date{{ event.id }}" class="form-label">Event Date</label>
+                                        <input type="date" class="form-control" id="event_date{{ event.id }}" name="event_date" 
+                                               value="{{ event.event_date.strftime('%Y-%m-%d') }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="event_time{{ event.id }}" class="form-label">Event Time</label>
+                                        <input type="time" class="form-control" id="event_time{{ event.id }}" name="event_time" 
+                                               value="{{ event.event_date.strftime('%H:%M') }}" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="location{{ event.id }}" class="form-label">Location</label>
+                                    <input type="text" class="form-control" id="location{{ event.id }}" name="location" 
+                                           value="{{ event.location }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="max_participants{{ event.id }}" class="form-label">Maximum Participants (Optional)</label>
+                                    <input type="number" class="form-control" id="max_participants{{ event.id }}" name="max_participants" 
+                                           value="{{ event.max_participants if event.max_participants }}">
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="registration_deadline_date{{ event.id }}" class="form-label">Registration Deadline Date</label>
+                                        <input type="date" class="form-control" id="registration_deadline_date{{ event.id }}" 
+                                               name="registration_deadline_date" 
+                                               value="{{ event.registration_deadline.strftime('%Y-%m-%d') if event.registration_deadline }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="registration_deadline_time{{ event.id }}" class="form-label">Registration Deadline Time</label>
+                                        <input type="time" class="form-control" id="registration_deadline_time{{ event.id }}" 
+                                               name="registration_deadline_time" 
+                                               value="{{ event.registration_deadline.strftime('%H:%M') if event.registration_deadline }}">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Current Image</label>
+                                    {% if event.image %}
+                                    <img src="{{ url_for('static', filename='events/' + event.image) }}" 
+                                         class="img-fluid mb-2" style="max-height: 200px;">
+                                    {% else %}
+                                    <p class="text-muted">No image</p>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="image{{ event.id }}" class="form-label">Change Image</label>
+                                    <input type="file" class="form-control" id="image{{ event.id }}" 
+                                           name="image" accept="image/*">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Event Modal -->
+            <div class="modal fade" id="deleteEventModal{{ event.id }}" tabindex="-1" aria-labelledby="deleteEventModalLabel{{ event.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteEventModalLabel{{ event.id }}">Delete Event</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-danger">Are you sure you want to delete "{{ event.title }}"?</p>
+                            <p class="text-muted">This action cannot be undone.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form action="{{ url_for('delete_event', id=event.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center">
+                <p class="text-muted">No events available at this time.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Events navigation">
+        <ul class="pagination">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('event_list', page=pagination.prev_num) }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in pagination.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('event_list', page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('event_list', page=pagination.next_num) }}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<!-- Add Event Modal -->
+{% if current_user.is_authenticated and current_user.type == 'admin' %}
+<div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEventModalLabel">Add New Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('add_event') }}" method="POST" enctype="multipart/form-data" class="event-form">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editor" class="form-label">Description</label>
+                        <div id="editor" class="editor"></div>
+                        <input type="hidden" name="description" id="description" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="event_date" class="form-label">Event Date</label>
+                            <input type="date" class="form-control" id="event_date" name="event_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="event_time" class="form-label">Event Time</label>
+                            <input type="time" class="form-control" id="event_time" name="event_time" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="max_participants" class="form-label">Maximum Participants (Optional)</label>
+                        <input type="number" class="form-control" id="max_participants" name="max_participants">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="registration_deadline_date" class="form-label">Registration Deadline Date</label>
+                            <input type="date" class="form-control" id="registration_deadline_date" name="registration_deadline_date">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="registration_deadline_time" class="form-label">Registration Deadline Time</label>
+                            <input type="time" class="form-control" id="registration_deadline_time" name="registration_deadline_time">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Event Image</label>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+{% block scripts %}
+<script src="https://cdn.ckeditor.com/ckeditor5/27.1.0/classic/ckeditor.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editors = {};
+    const editorConfig = {
+        toolbar: ['heading', '|', 'bold', 'italic', 'bulletedList', 'numberedList']
+    };
+
+    // Initialize Add Form editor
+    ClassicEditor
+        .create(document.querySelector('#editor'), editorConfig)
+        .then(editor => {
+            const addForm = document.querySelector('#addEventModal form');
+            if (addForm) {
+                addForm.addEventListener('submit', function() {
+                    document.querySelector('#description').value = editor.getData();
+                });
+            }
+        })
+        .catch(error => console.error('Add Event Editor:', error));
+
+    // Initialize Edit Form editors
+    document.querySelectorAll('[id^="editor"]').forEach(element => {
+        if (element.id !== 'editor') {
+            ClassicEditor
+                .create(element, editorConfig)
+                .then(editor => {
+                    const eventId = element.id.replace('editor', '');
+                    const eventContent = document.querySelector(`#eventModal${eventId} .event-content`);
+                    if (eventContent) {
+                        editor.setData(eventContent.innerHTML);
+                    }
+
+                    const editForm = element.closest('form');
+                    if (editForm) {
+                        editForm.addEventListener('submit', function() {
+                            document.querySelector(`#description${eventId}`).value = editor.getData();
+                        });
+                    }
+                })
+                .catch(error => console.error(`Edit Event Editor ${element.id}:`, error));
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

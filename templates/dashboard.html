@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %} Dashboard {% endblock %}
+{% block style %}
+<style>
+.modal-lg {
+    max-width: 800px;
+}
+
+.modal-body a {
+    text-decoration: none;
+    color: #0d6efd;
+}
+
+.modal-body a:hover {
+    text-decoration: underline;
+}
+
+.modal-body i {
+    width: 25px;
+}
+
+.modal-body .row > div {
+    padding: 15px;
+}
+
+.modal-body hr {
+    margin: 10px 0;
+}
+</style>
+
+{% endblock %}
+{% block content %}
+<div class="container">
+
+    <h1 style="margin:20px; text-align: center;">Alumni Dashboard</h1>
+    <div class="alumni-details" style="display: flex; flex-direction: column;">
+        {% if alumni_details.alumni_pic %}
+        <img src="{{ url_for('static', filename='alumni/' + alumni_details.alumni_pic) }}" alt="Alumni Picture"
+            style="width: 250px;height: 250px; border-radius: 50%; align-self: center;">
+        {% else %}
+        <img src="{{ url_for('static', filename='alumni/default.png') }}" alt="Alumni Picture"
+            style="width: 250px;height: 250px; border-radius: 50%; align-self: center;">
+        {% endif %}
+        <p><strong>Name:</strong> {{ alumni_details.first_name }} {{ alumni_details.last_name }}</p>
+        {% if alumni_details.date_of_birth %}
+        <p><strong>Date of Birth:</strong> {{ alumni_details.date_of_birth.strftime('%d-%b-%Y') }}</p>
+        {% endif %}
+        <p><strong>Blood Group:</strong> {{ alumni_details.blood_group }}</p>
+        <p><strong>Gender:</strong> {{ alumni_details.gender }}</p>
+        <p><strong>CSE Batch:</strong> {{ alumni_details.cse_batch }}</p>
+        <p><strong>Company Name:</strong> {{ alumni_details.company_name }}</p>
+        <p><strong>Position:</strong> {{ alumni_details.position }}</p>
+        
+    </div>
+</div>
+
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete your profile? All your informations will be deleted. This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_profile') }}" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+    <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Edit Profile</a>
+    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#otherInfoModal">
+        Other Information
+    </button>
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+        Delete Profile
+    </button>
+</div>
+
+
+<div class="modal fade" id="otherInfoModal" tabindex="-1" aria-labelledby="otherInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="otherInfoModalLabel">Additional Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <h6 class="text-primary">Social Media Profiles</h6>
+                        <hr>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fab fa-linkedin fa-lg text-primary me-2"></i>
+                            {% if alumni_details.linkedin_url %}
+                            <a href="{{ alumni_details.linkedin_url }}" target="_blank" class="me-2">LinkedIn Profile</a>
+                            {% else %}
+                            <span class="text-muted me-2">No LinkedIn profile added</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fab fa-github fa-lg text-dark me-2"></i>
+                            {% if alumni_details.github_url %}
+                            <a href="{{ alumni_details.github_url }}" target="_blank" class="me-2">GitHub Profile</a>
+                            {% else %}
+                            <span class="text-muted me-2">No GitHub profile added</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-12 mb-3">
+                        <h6 class="text-primary">Academic Profiles</h6>
+                        <hr>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-graduation-cap fa-lg text-success me-2"></i>
+                            {% if alumni_details.research_gate_url %}
+                            <a href="{{ alumni_details.research_gate_url }}" target="_blank" class="me-2">ResearchGate Profile</a>
+                            {% else %}
+                            <span class="text-muted me-2">No ResearchGate profile added</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-book fa-lg text-warning me-2"></i>
+                            {% if alumni_details.google_scholar_url %}
+                            <a href="{{ alumni_details.google_scholar_url }}" target="_blank" class="me-2">Google Scholar Profile</a>
+                            {% else %}
+                            <span class="text-muted me-2">No Google Scholar profile added</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-id-badge fa-lg text-info me-2"></i>
+                            {% if alumni_details.orcid_url %}
+                            <a href="{{ alumni_details.orcid_url }}" target="_blank" class="me-2">ORCID Profile</a>
+                            {% else %}
+                            <span class="text-muted me-2">No ORCID profile added</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <h6 class="text-primary">Personal Website</h6>
+                        <hr>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-globe fa-lg text-secondary me-2"></i>
+                            {% if alumni_details.personal_website %}
+                            <a href="{{ alumni_details.personal_website }}" target="_blank" class="me-2">Personal Website</a>
+                            {% else %}
+                            <span class="text-muted">No personal website added</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Edit Information</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
