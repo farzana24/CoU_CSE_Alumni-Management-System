@@ -937,7 +937,8 @@ def contact():
 def alumni_list():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '')
-    
+    sort_by = request.args.get('sort_by', 'name')  # default sort by name
+
     # Create base query
     query = AlumniDetails.query.join(User)
     
@@ -952,7 +953,13 @@ def alumni_list():
                 AlumniDetails.position.ilike(f'%{search_query}%')
             )
         )
-    
+     # Apply sorting
+    if sort_by == 'batch':
+        query = query.order_by(AlumniDetails.cse_batch.asc(), AlumniDetails.first_name.asc())
+    else:
+        query = query.order_by(AlumniDetails.first_name.asc(), AlumniDetails.last_name.asc())
+
+
     # Apply pagination
     pagination = query.paginate(page=page, per_page=4, error_out=False)
     alumni = pagination.items

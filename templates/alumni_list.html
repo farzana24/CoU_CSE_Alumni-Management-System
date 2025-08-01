@@ -79,10 +79,15 @@
 
 {% block content %}
 <h2 id="title">Alumni List</h2>
+
 <div class="d-flex justify-content-center mb-4">
-    <form method="GET" action="{{ url_for('alumni_list') }}" class="d-flex w-50">
+    <form method="GET" action="{{ url_for('alumni_list') }}" class="d-flex w-75">
         <input type="text" name="search" class="form-control me-2"
             placeholder="Search alumni by name, batch, or company" value="{{ request.args.get('search', '') }}">
+        <select name="sort_by" class="form-select me-2" style="max-width: 180px;">
+            <option value="name" {% if request.args.get('sort_by', 'name') == 'name' %}selected{% endif %}>Sort by Name</option>
+            <option value="batch" {% if request.args.get('sort_by') == 'batch' %}selected{% endif %}>Sort by Batch</option>
+        </select>
         <button type="submit" class="btn btn-primary">Search</button>
     </form>
 </div>
