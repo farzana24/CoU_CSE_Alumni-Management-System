@@ -1206,6 +1206,67 @@ def delete_event(id):
         
     return redirect(url_for('events'))
 
+@app.route("/donate", methods=['GET', 'POST'])
+@login_required
+def donate():
+    if not current_user.alumni_details:
+        flash('Only alumni can donate.', 'error')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        name = request.form.get('name')
+        amount = request.form.get('amount')
+        description = request.form.get('description')
+
+        # Prepare data for SSLCommerz
+        post_data = {
+            'store_id': 'cou688dd1fde6706',
+            'store_passwd': 'cou688dd1fde6706@ssl',
+            'total_amount': amount,
+            'currency': 'BDT',
+            'tran_id': f'donate_{int(time.time())}',
+            'success_url': url_for('donate_success', _external=True),
+            'fail_url': url_for('donate_fail', _external=True),
+            'cancel_url': url_for('donate_cancel', _external=True),
+            'cus_name': name,
+            'cus_email': current_user.email,
+            'cus_add1': 'Comilla University',
+            'cus_city': 'Cumilla',
+            'cus_country': 'Bangladesh',
+            'cus_phone': 'N/A',
+            'value_a': description,
+            'shipping_method': 'NO',
+            'product_name': 'Donation',
+            'product_category': 'Donation',
+            'product_profile': 'general',
+        }
+
+        import requests
+        sslcz_url = "https://sandbox.sslcommerz.com/gwprocess/v4/api.php"
+        response = requests.post(sslcz_url, data=post_data)
+        res_data = response.json()
+        if res_data.get('status') == 'SUCCESS':
+            return redirect(res_data['GatewayPageURL'])
+        else:
+            flash('Payment gateway error. Please try again later.', 'error')
+            return redirect(url_for('donate'))
+
+    return render_template('donate.html')
+
+@app.route("/donate/success", methods=['GET', 'POST'])
+def donate_success():
+    flash('Thank you for your donation!', 'success')
+    return redirect(url_for('dashboard'))
+
+@app.route("/donate/fail", methods=['GET', 'POST'])
+def donate_fail():
+    flash('Payment failed. Please try again.', 'error')
+    return redirect(url_for('donate'))
+
+@app.route("/donate/cancel", methods=['GET', 'POST'])
+def donate_cancel():
+    flash('Payment cancelled.', 'warning')
+    return redirect(url_for('donate'))
 
 @app.route("/blog")
 def blog():

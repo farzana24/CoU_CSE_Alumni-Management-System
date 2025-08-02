@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Donate{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 500px;">
+    <h2 class="mb-4 text-center">Donate to CSE Alumni Association</h2>
+    <form method="POST" action="{{ url_for('donate') }}">
+        <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ current_user.alumni_details.first_name }} {{ current_user.alumni_details.last_name }}" readonly>
+        </div>
+        <div class="mb-3">
+            <label for="amount" class="form-label">Amount (BDT)</label>
+            <input type="number" class="form-control" id="amount" name="amount" min="1" required>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Purpose/Description</label>
+            <textarea class="form-control" id="description" name="description" rows="2" placeholder="e.g. For alumni fund, event, etc." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-success w-100">Pay Now</button>
+    </form>
+</div>
+{% endblock %}
