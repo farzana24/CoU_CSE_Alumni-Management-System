@@ -252,6 +252,14 @@ class Teacher(db.Model):
     def __repr__(self):
         return f'<Teacher {self.name}>'
 
+class Donation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    donor_name = db.Column(db.String(150), nullable=False)
+    donor_email = db.Column(db.String(150), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    description = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 # Home Route
 @app.route("/")
 def home():
@@ -330,12 +338,13 @@ def admin_dashboard():
     admin_list = []
     if current_user.is_super_admin:
         admin_list = Admin.query.filter(Admin.id != current_user.id).all()
-        
+    donations = Donation.query.order_by(Donation.created_at.desc()).all()   
     return render_template('admin_dashboard.html', 
                          users=users, 
                          alumni_count=alumni_count,
                          alumni_pagination=alumni_pagination,
                          contacts=contacts,
+                         donations=donations,
                          admin_list=admin_list)
 
 # Admin Panel Route
@@ -1254,7 +1263,29 @@ def donate():
     return render_template('donate.html')
 
 @app.route("/donate/success", methods=['GET', 'POST'])
+@login_required
 def donate_success():
+    #print("DEBUG: request.values =", dict(request.values))
+    description = request.values.get('value_a')
+    amount = request.values.get('amount')
+    # Use logged-in user's info
+    name = f"{current_user.alumni_details.first_name} {current_user.alumni_details.last_name}" if current_user.alumni_details else current_user.username
+    email = current_user.email
+
+    if amount and name:
+        try:
+            donation = Donation(
+                donor_name=name,
+                donor_email=email,
+                amount=float(amount),
+                description=description
+            )
+            db.session.add(donation)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print("DB ERROR:", e)
+
     flash('Thank you for your donation!', 'success')
     return redirect(url_for('dashboard'))
 
