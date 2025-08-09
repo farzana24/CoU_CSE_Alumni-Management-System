@@ -14,7 +14,6 @@
             font-family: Arial, sans-serif;
             line-height: 1.6;
             margin: 0;
-
         }
 
         header {
@@ -33,7 +32,6 @@
             display: overflow;
             margin-top: 40px;
             margin-left: 20px;
-
         }
 
         nav {
@@ -53,7 +51,6 @@
             text-decoration: underline;
         }
 
-
         footer {
             padding: 10px 0;
             margin-top: 20px;
@@ -65,7 +62,6 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-
         }
 
         #social-container {
@@ -76,7 +72,6 @@
         #social-container img {
             height: 30px;
             width: 30px;
-
         }
 
         .floating-window {
@@ -172,6 +167,103 @@
             background-color: #011f43;
             color: white;
         }
+
+        /* Mobile Responsiveness */
+        .hamburger-menu {
+            display: none;
+            cursor: pointer;
+            font-size: 24px;
+            color: white;
+            padding: 10px;
+        }
+
+        .mobile-nav {
+            display: none;
+            flex-direction: column;
+            background-color: #f8f9fa;
+            width: 100%;
+            position: absolute;
+            top: 80px;
+            left: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .mobile-nav a {
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .mobile-nav .dropdown-menu {
+            position: static;
+            float: none;
+            width: 100%;
+            border: none;
+            box-shadow: none;
+        }
+
+        .mobile-nav .dropdown-item {
+            padding: 10px 30px;
+        }
+
+        .mobile-nav .dropdown-divider {
+            margin: 0;
+        }
+
+        .desktop-title {
+            display: inline;
+            text-align: center;
+            width: 100%;
+            position: relative;
+            top: 10px;
+            left: 10px;
+        }
+
+        .mobile-title {
+            display: none;
+            text-align: center;
+            width: 100%;
+            position: relative;
+            top: 10px;
+            left: 10px;
+        }
+
+        @media (max-width: 992px) {
+            .desktop-nav {
+                display: none;
+            }
+
+            .hamburger-menu {
+                display: block;
+            }
+
+            header .logo img {
+                height: 100px;
+                width: 100px;
+                margin-top: 20px;
+            }
+
+            .desktop-title {
+                display: none;
+            }
+
+            .mobile-title {
+                display: inline;
+                font-size: 18px;
+            }
+        }
+
+        @media (min-width: 993px) {
+            .mobile-nav {
+                display: none !important;
+            }
+            
+            .mobile-title {
+                display: none !important;
+            }
+        }
     </style>
     {% block style %}
 
@@ -182,13 +274,17 @@
 <body>
     <header style="display: flex; justify-content: space-between;">
         <a href="/" class="text-decoration-none" style="color: white;">
-            
             <div class="logo">
                 <img src="/static/pic/cse logo.jpeg" alt="CSE Comilla University Logo">
-                <h1 style="display: inline; text-align: center; width: 100%; position: relative; top: 10px;left: 10px;">CSE
-                    Alumni Association, Comilla University</h1>
+                <h1 class="desktop-title">CSE Alumni Association, Comilla University</h1>
+                <h1 class="mobile-title">CoU Alumni Management</h1>
             </div>
         </a>
+        
+        <div class="hamburger-menu" id="hamburger-menu">
+            <i class="fas fa-bars"></i>
+        </div>
+        
         {% if current_user.is_authenticated %}
         <div class="right dropdown">
             {% if current_user.alumni_details %}
@@ -222,13 +318,10 @@
             {% endif %}
         </div>
         {% endif %}
-
-
     </header>
 
-    <nav style="margin-left:200px;">
-
-
+    <!-- Desktop Navigation -->
+    <nav class="desktop-nav" style="margin-left:200px;">
         {% if current_user.is_authenticated %}
         {% if current_user.type == 'admin' %}
         <a href="{{ url_for('home') }}">Home</a>
@@ -312,7 +405,71 @@
         {% endif %}
     </nav>
 
-
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav" id="mobile-nav">
+        {% if current_user.is_authenticated %}
+        {% if current_user.type == 'admin' %}
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('about') }}">About Us</a>
+        <a href="{{ url_for('gallery') }}">Gallery</a>
+        <a href="{{ url_for('news') }}">News</a>
+        <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-admin">
+            Members
+        </a>
+        <div class="collapse" id="members-mobile-admin">
+            <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
+            <hr class="dropdown-divider">
+            <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
+        </div>
+        <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
+        <a href="{{ url_for('event_list') }}">Event List</a>
+        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+        <a href="{{ url_for('admin_logout') }}">Logout Admin</a>
+    
+            {% else %}
+            <a href="/event-list">Events</a>
+            <a href="/news">News</a>
+            <a href="/job-opportunities">Job Opportunities</a>
+            <a href="/gallery">Gallery</a>
+            <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-user">
+                Members
+            </a>
+            <div class="collapse" id="members-mobile-user">
+                <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
+                <hr class="dropdown-divider">
+                <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
+            </div>
+            <a href="/contact">Contact Us</a>
+            <a href="{{ url_for('donate') }}" style="background-color: #28a745; color: white; text-align: center; padding: 10px; margin: 5px; border-radius: 5px;">
+                Donate Now
+            </a>
+            {% endif %}
+        {% else %}
+        <a href="/">Home</a>
+        <a href="/about">About Us</a>
+        <a href="/gallery">Gallery</a>
+        <a href="/news">News</a>
+        <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-guest">
+            Members
+        </a>
+        <div class="collapse" id="members-mobile-guest">
+            <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
+            <hr class="dropdown-divider">
+            <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
+        </div>
+        <a href="/job-opportunities">Job Opportunities</a>
+        <a href="/event-list">Event List</a>
+        <a href="/contact">Contact Us</a>
+        <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#login-mobile">
+            Login
+        </a>
+        <div class="collapse" id="login-mobile">
+            <a class="dropdown-item" href="{{ url_for('login') }}">User Login</a>
+            <hr class="dropdown-divider">
+            <a class="dropdown-item" href="{{ url_for('admin_login') }}">Admin Login</a>
+        </div>
+        {% endif %}
+    </div>
 
     {% block content %}
 
@@ -338,8 +495,6 @@
     </footer>
     <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 
-
-
     <div class="floating-window" id="floating-window">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -359,6 +514,18 @@
                     setTimeout(function () {
                         floatingWindow.style.display = 'none';
                     }, 3000);
+                }
+            });
+
+            // Hamburger menu functionality
+            const hamburgerMenu = document.getElementById('hamburger-menu');
+            const mobileNav = document.getElementById('mobile-nav');
+            
+            hamburgerMenu.addEventListener('click', function() {
+                if (mobileNav.style.display === 'flex') {
+                    mobileNav.style.display = 'none';
+                } else {
+                    mobileNav.style.display = 'flex';
                 }
             });
         });

@@ -1221,6 +1221,8 @@ def donate():
     if not current_user.alumni_details:
         flash('Only alumni can donate.', 'error')
         return redirect(url_for('dashboard'))
+    
+
 
     if request.method == 'POST':
         name = request.form.get('name')

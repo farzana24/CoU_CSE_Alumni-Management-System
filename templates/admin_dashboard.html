@@ -104,6 +104,93 @@
     .btn:hover {
         opacity: 0.9;
     }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 10px;
+            margin: 10px;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .table {
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-dialog {
+            margin: 10px;
+        }
+
+        .modal-content {
+            width: 100%;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        /* Stack table cells vertically on small screens */
+        @media (max-width: 576px) {
+            .table thead {
+                display: none;
+            }
+
+            .table, .table tbody, .table tr, .table td {
+                display: block;
+                width: 100%;
+            }
+
+            .table tr {
+                margin-bottom: 15px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+
+            .table td {
+                text-align: right;
+                padding-left: 50%;
+                position: relative;
+                white-space: normal;
+                border-bottom: 1px solid #eee;
+            }
+
+            .table td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                width: 45%;
+                padding-right: 10px;
+                font-weight: bold;
+                text-align: left;
+            }
+
+            /* Add data labels for each cell */
+            .table td[data-label] {
+                text-align: right;
+            }
+        }
+    }
 </style>
 {% endblock %}
 
@@ -112,7 +199,6 @@
     <h2 class="mb-4">Admin Dashboard</h2>
 
     <div class="stats-grid">
-
         <div class="stat-card">
             <h3>Total Alumni</h3>
             <p class="stat-number">{{ alumni_count }}</p>
@@ -154,12 +240,12 @@
                     <tbody>
                         {% for admin in admin_list %}
                         <tr>
-                            <td>{{ admin.username }}</td>
-                            <td>{{ admin.email }}</td>
-                            <td>{{ admin.created_at.strftime('%Y-%m-%d') }}</td>
-                            <td>{{ admin.last_login.strftime('%Y-%m-%d %H:%M') if admin.last_login else 'Never' }}</td>
-                            <td>{{ 'Super Admin' if admin.is_super_admin else 'Admin' }}</td>
-                            <td>
+                            <td data-label="Username">{{ admin.username }}</td>
+                            <td data-label="Email">{{ admin.email }}</td>
+                            <td data-label="Created At">{{ admin.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td data-label="Last Login">{{ admin.last_login.strftime('%Y-%m-%d %H:%M') if admin.last_login else 'Never' }}</td>
+                            <td data-label="Admin Type">{{ 'Super Admin' if admin.is_super_admin else 'Admin' }}</td>
+                            <td data-label="Actions">
                                 <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
                                     data-bs-target="#deleteAdminModal{{ admin.id }}">
                                     <i class="fas fa-trash"></i> Delete
@@ -201,37 +287,39 @@
     <div class="recent-activity">
         <h3>All Alumni</h3>
         {% if alumni_pagination.items %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Batch</th>
-                    <th>Current Position</th>
-                    <th>Company</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for alumnus in alumni_pagination.items %}
-                <tr>
-                    <td>{{ alumnus.first_name }} {{ alumnus.last_name }}</td>
-                    <td>{{ alumnus.cse_batch }}</td>
-                    <td>{{ alumnus.position }}</td>
-                    <td>{{ alumnus.company_name }}</td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal"
-                            data-bs-target="#viewAlumniModal{{ alumnus.id }}">
-                            View
-                        </button>
-                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                            data-bs-target="#deleteAlumniModal{{ alumnus.id }}">
-                            Delete
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Batch</th>
+                        <th>Current Position</th>
+                        <th>Company</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alumnus in alumni_pagination.items %}
+                    <tr>
+                        <td data-label="Name">{{ alumnus.first_name }} {{ alumnus.last_name }}</td>
+                        <td data-label="Batch">{{ alumnus.cse_batch }}</td>
+                        <td data-label="Position">{{ alumnus.position }}</td>
+                        <td data-label="Company">{{ alumnus.company_name }}</td>
+                        <td data-label="Actions">
+                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal"
+                                data-bs-target="#viewAlumniModal{{ alumnus.id }}">
+                                View
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                data-bs-target="#deleteAlumniModal{{ alumnus.id }}">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         <!-- Add pagination controls -->
         <div class="d-flex justify-content-center mt-4">
@@ -278,36 +366,38 @@
     <div class="recent-activity">
         <h3>Recent Contact Messages</h3>
         {% if contacts %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Message</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for contact in contacts[-5:] %}
-                <tr>
-                    <td>{{ contact.name }}</td>
-                    <td>{{ contact.email }}</td>
-                    <td>{{ contact.message[:50] }}{% if contact.message|length > 50 %}...{% endif %}</td>
-                    <td>
-                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to={{ contact.email }}&su=Reply: CSE Alumni Association Contact Message&body=Dear {{ contact.name }}, %0D%0A%0D%0AThank you for contacting us. %0D%0A%0D%0ARegarding your message:%0D%0A{{ contact.message }}%0D%0A%0D%0ABest regards,%0D%0ACSE Alumni Association"
-                            class="btn btn-sm btn-primary me-2" target="_blank"
-                            title="Reply to {{ contact.name }} via Gmail">
-                            <i class="fas fa-envelope"></i> Reply
-                        </a>
-                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                            data-bs-target="#deleteContactModal{{ contact.id }}">
-                            Delete
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Message</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contact in contacts[-5:] %}
+                    <tr>
+                        <td data-label="Name">{{ contact.name }}</td>
+                        <td data-label="Email">{{ contact.email }}</td>
+                        <td data-label="Message">{{ contact.message[:50] }}{% if contact.message|length > 50 %}...{% endif %}</td>
+                        <td data-label="Actions">
+                            <a href="https://mail.google.com/mail/?view=cm&fs=1&to={{ contact.email }}&su=Reply: CSE Alumni Association Contact Message&body=Dear {{ contact.name }}, %0D%0A%0D%0AThank you for contacting us. %0D%0A%0D%0ARegarding your message:%0D%0A{{ contact.message }}%0D%0A%0D%0ABest regards,%0D%0ACSE Alumni Association"
+                                class="btn btn-sm btn-primary me-2" target="_blank"
+                                title="Reply to {{ contact.name }} via Gmail">
+                                <i class="fas fa-envelope"></i> Reply
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                data-bs-target="#deleteContactModal{{ contact.id }}">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
         <p class="text-muted">No contact messages found.</p>
         {% endif %}
@@ -315,28 +405,30 @@
     <div class="recent-activity">
         <h3>Donation History</h3>
         {% if donations %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Donor Name</th>
-                    <th>Email</th>
-                    <th>Amount (BDT)</th>
-                    <th>Description</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for donation in donations %}
-                <tr>
-                    <td>{{ donation.donor_name }}</td>
-                    <td>{{ donation.donor_email }}</td>
-                    <td>{{ donation.amount }}</td>
-                    <td>{{ donation.description }}</td>
-                    <td>{{ donation.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Donor Name</th>
+                        <th>Email</th>
+                        <th>Amount (BDT)</th>
+                        <th>Description</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for donation in donations %}
+                    <tr>
+                        <td data-label="Donor Name">{{ donation.donor_name }}</td>
+                        <td data-label="Email">{{ donation.donor_email }}</td>
+                        <td data-label="Amount">{{ donation.amount }}</td>
+                        <td data-label="Description">{{ donation.description }}</td>
+                        <td data-label="Date">{{ donation.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
         <p class="text-muted">No donations yet.</p>
         {% endif %}
