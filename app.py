@@ -1221,8 +1221,15 @@ def donate():
     if not current_user.alumni_details:
         flash('Only alumni can donate.', 'error')
         return redirect(url_for('dashboard'))
-    
 
+    total_donations = db.session.query(db.func.sum(Donation.amount)).filter(
+        Donation.donor_email == current_user.email
+    ).scalar() or 0
+
+    # Get donation history
+    donation_history = Donation.query.filter(
+        Donation.donor_email == current_user.email
+    ).order_by(Donation.created_at.desc()).all()
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -1262,7 +1269,10 @@ def donate():
             flash('Payment gateway error. Please try again later.', 'error')
             return redirect(url_for('donate'))
 
-    return render_template('donate.html')
+    
+    return render_template('donate.html', 
+                         total_donations=total_donations,
+                         donation_history=donation_history)
 
 @app.route("/donate/success", methods=['GET', 'POST'])
 @login_required
