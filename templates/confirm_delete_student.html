@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4>Delete Your Account</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <strong>Warning:</strong> This action is permanent and cannot be undone. All your data will be deleted.
+                    </div>
+                    <form method="POST" action="{{ url_for('delete_student_profile') }}">
+                        <div class="mb-3">
+                            <label for="confirm_text" class="form-label">
+                                Type "DELETE" to confirm account deletion
+                            </label>
+                            <input type="text" class="form-control" id="confirm_text" name="confirm_text" required>
+                        </div>
+                        <button type="submit" class="btn btn-danger" 
+                                onclick="return confirm('Are you absolutely sure you want to delete your account?')">
+                            Permanently Delete My Account
+                        </button>
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

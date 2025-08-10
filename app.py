@@ -408,7 +408,8 @@ def student_login():
 
         student = Student.query.filter(
             (Student.username == username_or_email) | 
-            (Student.email == username_or_email)
+            (Student.email == username_or_email) |
+            (Student.student_id == username_or_email)
         ).first()
 
         if student and check_password_hash(student.password, password):
@@ -583,6 +584,52 @@ def teacher_dashboard():
         return redirect(url_for('teacher_login'))
     return render_template('teacher_dashboard.html', teacher=current_user)
 
+@app.route("/teacher/edit-profile", methods=['GET', 'POST'])
+@login_required
+@teacher_required
+def edit_teacher_profile():
+    if request.method == 'POST':
+        try:
+            # Verify current password
+            current_password = request.form.get('current_password')
+            if not check_password_hash(current_user.password, current_password):
+                flash('Current password is incorrect', 'error')
+                return redirect(url_for('teacher_dashboard'))
+
+            # Update profile information
+            current_user.name = request.form.get('name')
+            current_user.designation = request.form.get('designation')
+            current_user.department = request.form.get('department')
+            current_user.phone = request.form.get('phone')
+            current_user.email = request.form.get('email')
+            current_user.research_interests = request.form.get('research_interests')
+            current_user.bio = request.form.get('bio')
+
+            # Handle photo upload
+            if 'photo' in request.files:
+                file = request.files['photo']
+                if file and allowed_file(file.filename):
+                    # Delete old photo if exists
+                    if current_user.photo:
+                        old_photo_path = os.path.join('static', 'teachers', current_user.photo)
+                        if os.path.exists(old_photo_path):
+                            os.remove(old_photo_path)
+                    
+                    # Save new photo
+                    filename = secure_filename(f"teacher_{current_user.id}_{int(time.time())}.{file.filename.rsplit('.', 1)[1].lower()}")
+                    file.save(os.path.join('static', 'teachers', filename))
+                    current_user.photo = filename
+
+            db.session.commit()
+            flash('Profile updated successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating profile: {str(e)}', 'error')
+        
+        return redirect(url_for('teacher_dashboard'))
+    
+    return redirect(url_for('teacher_dashboard'))
+
 @app.route("/student/dashboard")
 @login_required
 def student_dashboard():
@@ -617,8 +664,9 @@ def edit_student_profile():
         if file and file.filename and allowed_file(file.filename):
             ext = file.filename.rsplit('.', 1)[1].lower()
             filename = secure_filename(f"student_{student.id}.{ext}")
-            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-            path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            upload_dir = os.path.join('static', 'student')
+            os.makedirs(upload_dir, exist_ok=True)
+            path = os.path.join(upload_dir, filename)
             file.save(path)
             student.photo = filename
 
@@ -631,6 +679,60 @@ def edit_student_profile():
             flash('Error updating profile', 'error')
 
     return render_template('edit_student_profile.html', student=student)
+
+@app.route("/student/privacy-security", methods=['GET', 'POST'])
+@login_required
+def student_privacy_security():
+    if not hasattr(current_user, 'type') or current_user.type != 'student':
+        flash('Student access required', 'error')
+        return redirect(url_for('student_login'))
+
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not check_password_hash(current_user.password, current_password):
+            flash('Current password is incorrect', 'error')
+            return redirect(url_for('student_privacy_security'))
+
+        if new_password != confirm_password:
+            flash('New passwords do not match', 'error')
+            return redirect(url_for('student_privacy_security'))
+
+        current_user.password = generate_password_hash(new_password, method='pbkdf2:sha256')
+        db.session.commit()
+        flash('Password updated successfully', 'success')
+        return redirect(url_for('student_dashboard'))
+
+    return render_template('student_privacy_security.html')
+
+@app.route("/student/delete-profile", methods=['GET', 'POST'])
+@login_required
+def delete_student_profile():
+    if not hasattr(current_user, 'type') or current_user.type != 'student':
+        flash('Student access required', 'error')
+        return redirect(url_for('student_login'))
+
+    if request.method == 'POST':
+        try:
+            # Delete profile photo if exists
+            if current_user.photo:
+                photo_path = os.path.join('static', 'student', current_user.photo)
+                if os.path.exists(photo_path):
+                    os.remove(photo_path)
+            
+            # Delete student record
+            db.session.delete(current_user)
+            db.session.commit()
+            logout_user()
+            flash('Your account has been permanently deleted', 'info')
+            return redirect(url_for('home'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Error deleting profile', 'error')
+    
+    return render_template('confirm_delete_student.html')
 
 @app.route("/teacher-logout")
 @login_required
@@ -994,67 +1096,105 @@ def teacher_signup_step1():
 
         # Check if email already exists with a password
         existing_teacher = Teacher.query.filter_by(email=email).first()
+        
         if existing_teacher and existing_teacher.password:
             flash('Email already registered', 'error')
             return redirect(url_for('teacher_signup_step1'))
 
-        # Create or update teacher with just email and password
-        if existing_teacher:  # Existing but no password (incomplete registration)
-            existing_teacher.password = generate_password_hash(password, method='pbkdf2:sha256')
-            teacher_id = existing_teacher.id
-        else:  # New registration
-            new_teacher = Teacher(
-                email=email,
-                password=generate_password_hash(password, method='pbkdf2:sha256')
-            )
-            db.session.add(new_teacher)
-            db.session.flush()  # Get the ID before commit
-            teacher_id = new_teacher.id
+        # If teacher exists but has no password (incomplete registration)
+        if existing_teacher:
+            try:
+                existing_teacher.password = generate_password_hash(password, method='pbkdf2:sha256')
+                db.session.commit()
+                session['teacher_signup_id'] = existing_teacher.id
+                return redirect(url_for('teacher_signup_step2'))
+            except Exception as e:
+                db.session.rollback()
+                flash('Error updating teacher record', 'error')
+                return redirect(url_for('teacher_signup_step1'))
         
-        db.session.commit()
-        
-        # Store teacher ID in session for step 2
-        session['teacher_signup_id'] = teacher_id
+        # If new teacher, store in session and proceed to step 2
+        session['teacher_temp_data'] = {
+            'email': email,
+            'password': generate_password_hash(password, method='pbkdf2:sha256')
+        }
         return redirect(url_for('teacher_signup_step2'))
 
     return render_template('teacher_signup_step1.html')
 
 @app.route("/teacher-signup-step2", methods=['GET', 'POST'])
 def teacher_signup_step2():
-    # Check if coming from step 1
+    # Check if we have either a teacher ID or temp data
     teacher_id = session.get('teacher_signup_id')
-    if not teacher_id:
-        return redirect(url_for('teacher_signup_step1'))
-
-    teacher = Teacher.query.get(teacher_id)
-    if not teacher:
-        session.pop('teacher_signup_id', None)
+    temp_data = session.get('teacher_temp_data')
+    
+    if not teacher_id and not temp_data:
         return redirect(url_for('teacher_signup_step1'))
 
     if request.method == 'POST':
-        # Update teacher with all details
-        teacher.username = request.form.get('username')
-        teacher.name = request.form.get('name')
-        teacher.designation = request.form.get('designation')
-        teacher.department = request.form.get('department')
-        teacher.phone = request.form.get('phone')
-        teacher.bio = request.form.get('bio')
-        teacher.research_interests = request.form.get('research_interests')
+        try:
+            # Get all form data
+            username = request.form.get('username')
+            name = request.form.get('name')
+            designation = request.form.get('designation')
+            department = request.form.get('department')
+            phone = request.form.get('phone')
+            bio = request.form.get('bio')
+            research_interests = request.form.get('research_interests')
+            
+            if teacher_id:
+                # Update existing teacher record
+                teacher = Teacher.query.get(teacher_id)
+                if not teacher:
+                    flash('Teacher not found', 'error')
+                    return redirect(url_for('teacher_signup_step1'))
+                
+                teacher.username = username
+                teacher.name = name
+                teacher.designation = designation
+                teacher.department = department
+                teacher.phone = phone
+                teacher.bio = bio
+                teacher.research_interests = research_interests
+            else:
+                # Create new teacher record
+                teacher = Teacher(
+                    username=username,
+                    email=temp_data['email'],
+                    password=temp_data['password'],
+                    name=name,
+                    designation=designation,
+                    department=department,
+                    phone=phone,
+                    bio=bio,
+                    research_interests=research_interests
+                )
+                db.session.add(teacher)
+            
+            # Handle photo upload
+            if 'photo' in request.files:
+                file = request.files['photo']
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(f"teacher_{username}_{int(time.time())}.{file.filename.rsplit('.', 1)[1].lower()}")
+                    file.save(os.path.join('static', 'teachers', filename))
+                    teacher.photo = filename
+            
+            db.session.commit()
+            
+            # Clear session data
+            session.pop('teacher_signup_id', None)
+            session.pop('teacher_temp_data', None)
+            
+            flash('Teacher registration completed successfully!', 'success')
+            return redirect(url_for('teacher_login'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error completing registration: {str(e)}', 'error')
+            print(f"Error: {e}")
 
-        # Handle photo upload
-        if 'photo' in request.files:
-            file = request.files['photo']
-            if file and allowed_file(file.filename):
-                filename = secure_filename(f"teacher_{teacher_id}.{file.filename.rsplit('.', 1)[1].lower()}")
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                teacher.photo = filename
+    return render_template('teacher_signup_step2.html')
 
-        db.session.commit()
-        session.pop('teacher_signup_id', None)  # Clear session
-        flash('Teacher registration completed successfully!', 'success')
-        return redirect(url_for('teacher_dashboard'))
-
-    return render_template('teacher_signup_step2.html', teacher=teacher)
 
 @app.route("/student-signup", methods=['GET', 'POST'])
 def student_signup():

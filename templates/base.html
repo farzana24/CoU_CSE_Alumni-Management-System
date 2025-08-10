@@ -324,7 +324,7 @@
                 <button class="dropdown-toggle custom-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
                     style="background: none; border: none;">
                     {% if current_user.photo %}
-                    <img src="{{ url_for('static', filename='uploads/' + current_user.photo) }}"
+                    <img src="{{ url_for('static', filename='student/' + current_user.photo) }}"
                         alt="{{ current_user.name }}'s Profile Picture"
                         style="height: 50px; width: 50px; border-radius: 50%; cursor: pointer;">
                     {% else %}

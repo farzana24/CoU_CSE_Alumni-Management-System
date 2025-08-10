@@ -24,7 +24,7 @@
             <div class="mb-3">
               <label class="form-label">Current Photo</label><br>
               {% if student.photo %}
-                <img src="{{ url_for('static', filename='uploads/' + student.photo) }}" class="rounded" width="120" height="120">
+                <img src="{{ url_for('static', filename='student/' + student.photo) }}" class="rounded" width="120" height="120">
               {% else %}
                 <p class="text-muted mb-0">No photo uploaded</p>
               {% endif %}
