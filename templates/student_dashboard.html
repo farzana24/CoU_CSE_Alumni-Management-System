@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if student.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' + student.photo) }}" 
+                         class="rounded-circle mb-3" width="150" height="150">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='images/default-student.png') }}" 
+                         class="rounded-circle mb-3" width="150" height="150">
+                    {% endif %}
+                    <h4>{{ student.name }}</h4>
+                    <p class="text-muted">{{ student.batch }} Batch</p>
+                    <p>Student ID: {{ student.student_id }}</p>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Quick Links</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <a href="{{ url_for('edit_student_profile') }}">Edit Profile</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Student Dashboard</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Personal Information</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Email:</strong> {{ student.email }}</p>
+                            <p><strong>Username:</strong> {{ student.username }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            {% if student.phone %}
+                            <p><strong>Phone:</strong> {{ student.phone }}</p>
+                            {% endif %}
+                            <p><strong>Registration Date:</strong> {{ student.created_at.strftime('%d %B %Y') }}</p>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="mt-4">Recent Activities</h5>
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Welcome to CSE Alumni Portal</h6>
+                                <small>Today</small>
+                            </div>
+                            <p class="mb-1">Your account has been successfully created.</p>
+                        </div>
+                        <!-- More activity items can be added here -->
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('student_logout') }}" class="btn btn-danger">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, abort, redirect, url_for, flash
+from flask import Flask, render_template, request, abort, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_ 
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
@@ -41,6 +41,18 @@ def load_user(user_id):
         if admin:
             admin.type = 'admin'
             return admin
+    elif user_id.startswith('teacher_'):
+        real_id = int(user_id.split('_')[1])
+        teacher = Teacher.query.get(real_id)
+        if teacher:
+            teacher.type = 'teacher'
+            return teacher
+    elif user_id.startswith('student_'):
+        real_id = int(user_id.split('_')[1])
+        student = Student.query.get(real_id)
+        if student:
+            student.type = 'student'
+            return student
     else:
         user = User.query.get(int(user_id))
         if user:
@@ -52,10 +64,14 @@ def unauthorized_handler():
     if request.path.startswith('/admin'):
         flash('Please log in as admin first.', 'error')
         return redirect(url_for('admin_login'))
+    elif request.path.startswith('/teacher'):
+        flash('Please log in as teacher first.', 'error')
+        return redirect(url_for('teacher_login'))
+    elif request.path.startswith('/student'):
+        flash('Please log in as student first.', 'error')
+        return redirect(url_for('student_login'))
     flash('Please log in to access this page.', 'error')
     return redirect(url_for('login'))
-
-login_manager.unauthorized_handler(unauthorized_handler)
 
 
 # File Uploads
@@ -124,7 +140,32 @@ def admin_required(f):
             return redirect(url_for('admin_login'))
         return f(*args, **kwargs)
     return decorated_function
-    
+
+def teacher_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('Please log in as teacher', 'error')
+            return redirect(url_for('teacher_login'))
+        if not hasattr(current_user, 'type') or current_user.type != 'teacher':
+            logout_user()
+            flash('Teacher access required', 'error')
+            return redirect(url_for('teacher_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def student_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('Please log in as student', 'error')
+            return redirect(url_for('student_login'))
+        if not hasattr(current_user, 'type') or current_user.type != 'student':
+            logout_user()
+            flash('Student access required', 'error')
+            return redirect(url_for('student_login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # News Model
 class News(db.Model):
@@ -237,20 +278,37 @@ class Event(db.Model):
             return True
         return datetime.now() < self.registration_deadline
 
-class Teacher(db.Model):
+class Teacher(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
     name = db.Column(db.String(150), nullable=False)
     designation = db.Column(db.String(100), nullable=False)
     department = db.Column(db.String(100), default="Computer Science and Engineering")
     photo = db.Column(db.String(150), nullable=True)
     phone = db.Column(db.String(20), nullable=True)
-    email = db.Column(db.String(150), nullable=False)
     bio = db.Column(db.Text, nullable=True)
     research_interests = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     
-    def __repr__(self):
-        return f'<Teacher {self.name}>'
+    def get_id(self):
+        return f'teacher_{self.id}'
+
+class Student(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    name = db.Column(db.String(150), nullable=False)
+    student_id = db.Column(db.String(50), unique=True, nullable=False)
+    batch = db.Column(db.String(10), nullable=False)
+    phone = db.Column(db.String(20), nullable=True)
+    photo = db.Column(db.String(150), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    def get_id(self):
+        return f'student_{self.id}'
 
 class Donation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -300,6 +358,56 @@ def logout():
     flash('You have been logged out', 'warning')
     return redirect(url_for('login'))
 
+@app.route("/teacher-login", methods=['GET', 'POST'])
+def teacher_login():
+    if current_user.is_authenticated and hasattr(current_user, 'type'):
+        if current_user.type == 'teacher':
+            return redirect(url_for('teacher_dashboard'))
+        logout_user()
+
+    if request.method == 'POST':
+        username_or_email = request.form.get('email')
+        password = request.form.get('password')
+
+        teacher = Teacher.query.filter(
+            (Teacher.username == username_or_email) | 
+            (Teacher.email == username_or_email)
+        ).first()
+
+        if teacher and check_password_hash(teacher.password, password):
+            login_user(teacher)
+            flash('Logged in successfully as teacher', 'success')
+            return redirect(url_for('teacher_dashboard'))
+        else:
+            flash('Invalid teacher credentials', 'error')
+
+    return render_template('teacher_login.html')
+
+@app.route("/student-login", methods=['GET', 'POST'])
+def student_login():
+    if current_user.is_authenticated and hasattr(current_user, 'type'):
+        if current_user.type == 'student':
+            return redirect(url_for('student_dashboard'))
+        logout_user()
+
+    if request.method == 'POST':
+        username_or_email = request.form.get('studentId')
+        password = request.form.get('password')
+
+        student = Student.query.filter(
+            (Student.username == username_or_email) | 
+            (Student.email == username_or_email)
+        ).first()
+
+        if student and check_password_hash(student.password, password):
+            login_user(student)
+            flash('Logged in successfully as student', 'success')
+            return redirect(url_for('student_dashboard'))
+        else:
+            flash('Invalid student credentials', 'error')
+
+    return render_template('student_login.html')
+
 # Dashboard Route
 @app.route("/dashboard")
 @login_required
@@ -308,6 +416,79 @@ def dashboard():
         flash('Please complete your profile first', 'warning')
         return redirect(url_for('user_details'))
     return render_template('dashboard.html', alumni_details=current_user.alumni_details)
+
+@app.route("/teacher/dashboard")
+@login_required
+def teacher_dashboard():
+    if not hasattr(current_user, 'type') or current_user.type != 'teacher':
+        flash('Teacher access required', 'error')
+        return redirect(url_for('teacher_login'))
+    return render_template('teacher_dashboard.html', teacher=current_user)
+
+@app.route("/student/dashboard")
+@login_required
+def student_dashboard():
+    if not hasattr(current_user, 'type') or current_user.type != 'student':
+        flash('Student access required', 'error')
+        return redirect(url_for('student_login'))
+    return render_template('student_dashboard.html', student=current_user)
+
+@app.route("/student/edit-profile", methods=['GET', 'POST'])
+@login_required
+def edit_student_profile():
+    """Allow a logged-in student to edit basic profile fields and photo."""
+    if not hasattr(current_user, 'type') or current_user.type != 'student':
+        flash('Student access required', 'error')
+        return redirect(url_for('student_login'))
+
+    student = current_user  # alias
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        batch = request.form.get('batch', '').strip()
+        phone = request.form.get('phone', '').strip()
+
+        if name:
+            student.name = name
+        if batch:
+            student.batch = batch
+        student.phone = phone if phone else None
+
+        # Handle photo upload
+        file = request.files.get('photo')
+        if file and file.filename and allowed_file(file.filename):
+            ext = file.filename.rsplit('.', 1)[1].lower()
+            filename = secure_filename(f"student_{student.id}.{ext}")
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(path)
+            student.photo = filename
+
+        try:
+            db.session.commit()
+            flash('Profile updated successfully', 'success')
+            return redirect(url_for('student_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Error updating profile', 'error')
+
+    return render_template('edit_student_profile.html', student=student)
+
+@app.route("/teacher-logout")
+@login_required
+def teacher_logout():
+    if hasattr(current_user, 'type') and current_user.type == 'teacher':
+        logout_user()
+        flash('Teacher logged out successfully', 'info')
+    return redirect(url_for('teacher_login'))
+
+@app.route("/student-logout")
+@login_required
+def student_logout():
+    if hasattr(current_user, 'type') and current_user.type == 'student':
+        logout_user()
+        flash('Student logged out successfully', 'info')
+    return redirect(url_for('student_login'))
 
 @app.route("/admin")
 @login_required
@@ -640,6 +821,128 @@ def signup():
         return redirect(url_for('user_details'))
 
     return render_template('signup.html')
+
+@app.route("/teacher-signup-step1", methods=['GET', 'POST'])
+def teacher_signup_step1():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        # Validation
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return redirect(url_for('teacher_signup_step1'))
+
+        # Check if email already exists with a password
+        existing_teacher = Teacher.query.filter_by(email=email).first()
+        if existing_teacher and existing_teacher.password:
+            flash('Email already registered', 'error')
+            return redirect(url_for('teacher_signup_step1'))
+
+        # Create or update teacher with just email and password
+        if existing_teacher:  # Existing but no password (incomplete registration)
+            existing_teacher.password = generate_password_hash(password, method='pbkdf2:sha256')
+            teacher_id = existing_teacher.id
+        else:  # New registration
+            new_teacher = Teacher(
+                email=email,
+                password=generate_password_hash(password, method='pbkdf2:sha256')
+            )
+            db.session.add(new_teacher)
+            db.session.flush()  # Get the ID before commit
+            teacher_id = new_teacher.id
+        
+        db.session.commit()
+        
+        # Store teacher ID in session for step 2
+        session['teacher_signup_id'] = teacher_id
+        return redirect(url_for('teacher_signup_step2'))
+
+    return render_template('teacher_signup_step1.html')
+
+@app.route("/teacher-signup-step2", methods=['GET', 'POST'])
+def teacher_signup_step2():
+    # Check if coming from step 1
+    teacher_id = session.get('teacher_signup_id')
+    if not teacher_id:
+        return redirect(url_for('teacher_signup_step1'))
+
+    teacher = Teacher.query.get(teacher_id)
+    if not teacher:
+        session.pop('teacher_signup_id', None)
+        return redirect(url_for('teacher_signup_step1'))
+
+    if request.method == 'POST':
+        # Update teacher with all details
+        teacher.username = request.form.get('username')
+        teacher.name = request.form.get('name')
+        teacher.designation = request.form.get('designation')
+        teacher.department = request.form.get('department')
+        teacher.phone = request.form.get('phone')
+        teacher.bio = request.form.get('bio')
+        teacher.research_interests = request.form.get('research_interests')
+
+        # Handle photo upload
+        if 'photo' in request.files:
+            file = request.files['photo']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(f"teacher_{teacher_id}.{file.filename.rsplit('.', 1)[1].lower()}")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                teacher.photo = filename
+
+        db.session.commit()
+        session.pop('teacher_signup_id', None)  # Clear session
+        flash('Teacher registration completed successfully!', 'success')
+        return redirect(url_for('teacher_dashboard'))
+
+    return render_template('teacher_signup_step2.html', teacher=teacher)
+
+@app.route("/student-signup", methods=['GET', 'POST'])
+def student_signup():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        name = request.form.get('name')
+        student_id = request.form.get('student_id')
+        batch = request.form.get('batch')
+        phone = request.form.get('phone')
+
+        # Validation
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return redirect(url_for('student_signup'))
+
+        # Check if username, email or student_id already exists
+        if Student.query.filter(
+            (Student.username == username) | 
+            (Student.email == email) |
+            (Student.student_id == student_id)
+        ).first():
+            flash('Username, email or student ID already exists', 'error')
+            return redirect(url_for('student_signup'))
+
+        # Hash password and create new student
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        new_student = Student(
+            username=username,
+            email=email,
+            password=hashed_password,
+            name=name,
+            student_id=student_id,
+            batch=batch,
+            phone=phone
+        )
+
+        db.session.add(new_student)
+        db.session.commit()
+
+        flash('Student account created successfully!', 'success')
+        return redirect(url_for('student_login'))
+
+    return render_template('student_signup.html')
 
 # User Details Route
 @app.route("/user_details", methods=['GET', 'POST'])

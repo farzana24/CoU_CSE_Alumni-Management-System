@@ -159,12 +159,13 @@
 
         nav .dropdown-item {
             color: #333;
-            padding: 8px 20px;
+           
             font-size: 14px;
         }
 
         nav .dropdown-item:hover {
             background-color: #011f43;
+            margin: 8px 0px;
             color: white;
         }
 
@@ -277,7 +278,7 @@
             <div class="logo">
                 <img src="/static/pic/cse logo.jpeg" alt="CSE Comilla University Logo">
                 <h1 class="desktop-title">CSE Alumni Association, Comilla University</h1>
-                <h1 class="mobile-title">CoU Alumni Management</h1>
+                <h1 class="mobile-title">CoU CSE Alumni</h1>
             </div>
         </a>
         
@@ -287,34 +288,79 @@
         
         {% if current_user.is_authenticated %}
         <div class="right dropdown">
-            {% if current_user.alumni_details %}
-            <button class="dropdown-toggle custom-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                style="background: none; border: none;">
-                {% if current_user.alumni_details.alumni_pic %}
-                <img src="{{ url_for('static', filename='alumni/' + current_user.alumni_details.alumni_pic) }}"
-                    alt="{{ current_user.last_name }}'s Profile Picture"
-                    style="height: 50px; width: 50px; border-radius: 50%; cursor: pointer;">
-                {% else %}
-                <img src="{{ url_for('static', filename='alumni/default.png') }}"
-                    alt="{{ current_user.first_name }}'s Profile Picture"
-                    style="height: 50px; width: 50px; border-radius: 50%; cursor: pointer;">
-                {% endif %}
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li class="dropdown-item"><strong>{{ current_user.alumni_details.first_name }} {{
-                        current_user.alumni_details.last_name }}</strong></li>
-                <li>
-                    <hr class="dropdown-divider">
-                <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                <li><a class="dropdown-item" href="{{ url_for('job_opportunities') }}">Add Job Circular</a></li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
-            </ul>
+            {% if current_user.type == 'admin' %}
+                <button class="dropdown-toggle custom-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                    style="background: none; border: none; color: white;">
+                    <i class="fas fa-user-shield" style="font-size: 1.5rem;"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li class="dropdown-item"><strong>Admin: {{ current_user.username }}</strong></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin_logout') }}">Logout</a></li>
+                </ul>
+            
+            {% elif current_user.type == 'teacher' %}
+                <button class="dropdown-toggle custom-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                    style="background: none; border: none;">
+                    {% if current_user.photo %}
+                    <img src="{{ url_for('static', filename='teachers/' + current_user.photo) }}"
+                        alt="{{ current_user.name }}'"
+                        style="height: 50px; width: 50px; border-radius: 50%; cursor: pointer;">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='alumni/default.png') }}"
+                        alt="{{ current_user.name }}'s Profile Picture"
+                        style="height: 50px; width: 50px; border-radius: 50%; cursor: pointer;">
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li class="dropdown-item"><strong>{{ current_user.name }}</strong></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('teacher_dashboard') }}">Dashboard</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('teacher_logout') }}">Logout</a></li>
+                </ul>
+            
+            {% elif current_user.type == 'student' %}
+                <button class="dropdown-toggle custom-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                    style="background: none; border: none;">
+                    {% if current_user.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.photo) }}"
+                        alt="{{ current_user.name }}'s Profile Picture"
+                        style="height: 50px; width: 50px; border-radius: 50%; cursor: pointer;">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='alumni/default.png') }}"
+                        alt="{{ current_user.name }}'s Profile Picture"
+                        style="height: 50px; width: 50px; border-radius: 50%; cursor: pointer;">
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li class="dropdown-item"><strong>{{ current_user.name }}</strong></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('student_dashboard') }}">Dashboard</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('student_logout') }}">Logout</a></li>
+                </ul>
+            
+            {% elif current_user.alumni_details %}
+                <button class="dropdown-toggle custom-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                    style="background: none; border: none;">
+                    {% if current_user.alumni_details.alumni_pic %}
+                    <img src="{{ url_for('static', filename='alumni/' + current_user.alumni_details.alumni_pic) }}"
+                        alt="{{ current_user.last_name }}'s Profile Picture"
+                        style="height: 50px; width: 50px; border-radius: 50%; cursor: pointer;">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='alumni/default.png') }}"
+                        alt="{{ current_user.first_name }}'s Profile Picture"
+                        style="height: 50px; width: 50px; border-radius: 50%; cursor: pointer;">
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li class="dropdown-item"><strong>{{ current_user.alumni_details.first_name }} {{
+                            current_user.alumni_details.last_name }}</strong></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('job_opportunities') }}">Add Job Circular</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                </ul>
             {% endif %}
         </div>
         {% endif %}
@@ -323,151 +369,222 @@
     <!-- Desktop Navigation -->
     <nav class="desktop-nav" style="margin-left:200px;">
         {% if current_user.is_authenticated %}
-        {% if current_user.type == 'admin' %}
-        <a href="{{ url_for('home') }}">Home</a>
-        <a href="{{ url_for('about') }}">About Us</a>
-        <a href="{{ url_for('gallery') }}">Gallery</a>
-        <a href="{{ url_for('news') }}">News</a>
-        <div class="dropdown" style="margin-top: 10px;">
-            <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                Members
-            </a>
-            <ul class="dropdown-menu">
-                <li><a style="margin-left: 0px;" class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a></li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                <li><a style="margin-left: 0px;" class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a></li>
-            </ul>
-        </div>
-        <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
-        <a href="{{ url_for('event_list') }}">Event List</a>
-        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-        <a href="{{ url_for('admin_logout') }}">Logout Admin</a>
-    
+            {% if current_user.type == 'admin' %}
+                <a href="{{ url_for('home') }}">Home</a>
+                <a href="{{ url_for('about') }}">About Us</a>
+                <a href="{{ url_for('gallery') }}">Gallery</a>
+                <a href="{{ url_for('news') }}">News</a>        
+                <a href="{{ url_for('blog') }}">Blogs</a>        
+                <div class="dropdown" style="margin-top: 10px;">
+                    <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        Members
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a></li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
+                <a href="{{ url_for('event_list') }}">Event List</a>
+                <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+                <a href="{{ url_for('admin_logout') }}">Logout Admin</a>
+            
+            {% elif current_user.type == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('news') }}">News</a>
+                <a href="{{ url_for('blog') }}">Blogs</a>
+                <div class="dropdown" style="margin-top: 10px;">
+                    <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        Members
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a></li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
+                <a href="{{ url_for('event_list') }}">Event List</a>
+                <a href="{{ url_for('teacher_logout') }}">Logout</a>
+            
+            {% elif current_user.type == 'student' %}
+                <a href="{{ url_for('student_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('news') }}">News</a>
+                <a href="{{ url_for('blog') }}">Blogs</a>
+                <div class="dropdown" style="margin-top: 10px;">
+                    <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        Members
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a></li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
+                <a href="{{ url_for('event_list') }}">Event List</a>
+                <a href="{{ url_for('student_logout') }}">Logout</a>
+            
             {% else %}
-            <a href="/event-list">Events</a>
-            <a href="/news">News</a>
-        
-            <a href="/job-opportunities">Job Opportunities</a>
+                <a href="/event-list">Events</a>
+                <a href="/news">News</a>
+                <a href="/blog">Blogs</a>        
+                <a href="/job-opportunities">Job Opportunities</a>
+                <a href="/gallery">Gallery</a>
+                <div class="dropdown" style="margin-top: 10px;">
+                    <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        Members
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a></li>
+                    </ul>
+                </div>
+                <a href="/contact">Contact Us</a>
+                <a href="{{ url_for('donate') }}" class="btn btn-success" style="margin: 5px; margin-left:auto; font-weight: bold;">
+                    Donate Now
+                </a>
+            {% endif %}
+        {% else %}
+            <a href="/">Home</a>
+            <a href="/about">About Us</a>
             <a href="/gallery">Gallery</a>
+            <a href="/news">News</a>
+            <a href="/blog">Blogs</a>        
+
             <div class="dropdown" style="margin-top: 10px;">
                 <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                     Members
                 </a>
                 <ul class="dropdown-menu">
-                    <li><a style="margin-left: 0px;" class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a></li>
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
-                    <li><a style="margin-left: 0px;" class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a></li>
                 </ul>
             </div>
+            
+            <a href="/job-opportunities">Job Opportunities</a>
+            <a href="/event-list">Event List</a>
             <a href="/contact">Contact Us</a>
-            <a href="{{ url_for('donate') }}" class="btn btn-success" style="margin: 5px; margin-left:auto; font-weight: bold;">
-        Donate Now
-    </a>
-            {% endif %}
-        {% else %}
-        <a href="/">Home</a>
-        <a href="/about">About Us</a>
-        <a href="/gallery">Gallery</a>
-        <a href="/news">News</a>
-        <div class="dropdown" style="margin-top: 10px;">
-            <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                Members
-            </a>
-            <ul class="dropdown-menu">
-                <li><a style="margin-left: 0px;" class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a></li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                <li><a style="margin-left: 0px;" class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a></li>
-            </ul>
-        </div>
-        
-        <a href="/job-opportunities">Job Opportunities</a>
-        <a href="/event-list">Event List</a>
-        <a href="/contact">Contact Us</a>
-        <div class="dropdown" style="margin-top: 10px;">
-            <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                Login
-            </a>
-            <ul class="dropdown-menu">
-                <li><a style="margin-left: 0px;" class="dropdown-item" href="{{ url_for('login') }}">User Login</a></li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                <li><a style="margin-left: 0px;" class="dropdown-item" href="{{ url_for('admin_login') }}">Admin
-                        Login</a></li>
-            </ul>
-        </div>
+            
+            <div class="dropdown" style="margin-top: 10px;">
+                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    Login
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('login') }}">Alumni Login</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('teacher_login') }}">Teacher Login</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('student_login') }}">Student Login</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin_login') }}">Admin Login</a></li>
+                </ul>
+            </div>
         {% endif %}
     </nav>
 
     <!-- Mobile Navigation -->
     <div class="mobile-nav" id="mobile-nav">
         {% if current_user.is_authenticated %}
-        {% if current_user.type == 'admin' %}
-        <a href="{{ url_for('home') }}">Home</a>
-        <a href="{{ url_for('about') }}">About Us</a>
-        <a href="{{ url_for('gallery') }}">Gallery</a>
-        <a href="{{ url_for('news') }}">News</a>
-        <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-admin">
-            Members
-        </a>
-        <div class="collapse" id="members-mobile-admin">
-            <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
-            <hr class="dropdown-divider">
-            <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
-        </div>
-        <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
-        <a href="{{ url_for('event_list') }}">Event List</a>
-        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-        <a href="{{ url_for('admin_logout') }}">Logout Admin</a>
-    
+            {% if current_user.type == 'admin' %}
+                <a href="{{ url_for('home') }}">Home</a>
+                <a href="{{ url_for('about') }}">About Us</a>
+                <a href="{{ url_for('gallery') }}">Gallery</a>
+                <a href="{{ url_for('news') }}">News</a>
+                <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-admin">
+                    Members
+                </a>
+                <div class="collapse" id="members-mobile-admin">
+                    <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
+                    <hr class="dropdown-divider">
+                    <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
+                </div>
+                <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
+                <a href="{{ url_for('event_list') }}">Event List</a>
+                <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+                <a href="{{ url_for('admin_logout') }}">Logout Admin</a>
+            
+            {% elif current_user.type == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('news') }}">News</a>
+                <a href="{{ url_for('blog') }}">Blogs</a>
+                <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-teacher">
+                    Members
+                </a>
+                <div class="collapse" id="members-mobile-teacher">
+                    <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
+                    <hr class="dropdown-divider">
+                    <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
+                </div>
+                <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
+                <a href="{{ url_for('event_list') }}">Event List</a>
+                <a href="{{ url_for('teacher_logout') }}">Logout</a>
+            
+            {% elif current_user.type == 'student' %}
+                <a href="{{ url_for('student_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('news') }}">News</a>
+                <a href="{{ url_for('blog') }}">Blogs</a>
+                <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-student">
+                    Members
+                </a>
+                <div class="collapse" id="members-mobile-student">
+                    <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
+                    <hr class="dropdown-divider">
+                    <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
+                </div>
+                <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
+                <a href="{{ url_for('event_list') }}">Event List</a>
+                <a href="{{ url_for('student_logout') }}">Logout</a>
+            
             {% else %}
-            <a href="/event-list">Events</a>
-            <a href="/news">News</a>
-            <a href="/job-opportunities">Job Opportunities</a>
+                <a href="/event-list">Events</a>
+                <a href="/news">News</a>
+                <a href="/job-opportunities">Job Opportunities</a>
+                <a href="/gallery">Gallery</a>
+                <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-user">
+                    Members
+                </a>
+                <div class="collapse" id="members-mobile-user">
+                    <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
+                    <hr class="dropdown-divider">
+                    <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
+                </div>
+                <a href="/contact">Contact Us</a>
+                <a href="{{ url_for('donate') }}" style="background-color: #28a745; color: white; text-align: center; padding: 10px; margin: 5px; border-radius: 5px;">
+                    Donate Now
+                </a>
+            {% endif %}
+        {% else %}
+            <a href="/">Home</a>
+            <a href="/about">About Us</a>
             <a href="/gallery">Gallery</a>
-            <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-user">
+            <a href="/news">News</a>
+            <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-guest">
                 Members
             </a>
-            <div class="collapse" id="members-mobile-user">
+            <div class="collapse" id="members-mobile-guest">
                 <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
                 <hr class="dropdown-divider">
                 <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
             </div>
+            <a href="/job-opportunities">Job Opportunities</a>
+            <a href="/event-list">Event List</a>
             <a href="/contact">Contact Us</a>
-            <a href="{{ url_for('donate') }}" style="background-color: #28a745; color: white; text-align: center; padding: 10px; margin: 5px; border-radius: 5px;">
-                Donate Now
+            <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#login-mobile">
+                Login
             </a>
-            {% endif %}
-        {% else %}
-        <a href="/">Home</a>
-        <a href="/about">About Us</a>
-        <a href="/gallery">Gallery</a>
-        <a href="/news">News</a>
-        <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#members-mobile-guest">
-            Members
-        </a>
-        <div class="collapse" id="members-mobile-guest">
-            <a class="dropdown-item" href="{{ url_for('alumni_list') }}">Alumni</a>
-            <hr class="dropdown-divider">
-            <a class="dropdown-item" href="{{ url_for('teachers') }}">Teachers</a>
-        </div>
-        <a href="/job-opportunities">Job Opportunities</a>
-        <a href="/event-list">Event List</a>
-        <a href="/contact">Contact Us</a>
-        <a href="#" class="dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#login-mobile">
-            Login
-        </a>
-        <div class="collapse" id="login-mobile">
-            <a class="dropdown-item" href="{{ url_for('login') }}">User Login</a>
-            <hr class="dropdown-divider">
-            <a class="dropdown-item" href="{{ url_for('admin_login') }}">Admin Login</a>
-        </div>
+            <div class="collapse" id="login-mobile">
+                <a class="dropdown-item" href="{{ url_for('login') }}">Alumni Login</a>
+                <hr class="dropdown-divider">
+                <a class="dropdown-item" href="{{ url_for('teacher_login') }}">Teacher Login</a>
+                <hr class="dropdown-divider">
+                <a class="dropdown-item" href="{{ url_for('student_login') }}">Student Login</a>
+                <hr class="dropdown-divider">
+                <a class="dropdown-item" href="{{ url_for('admin_login') }}">Admin Login</a>
+            </div>
         {% endif %}
     </div>
 
