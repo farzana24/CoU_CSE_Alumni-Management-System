@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>Verify OTP</h2>
+    <p>We've sent a 6-digit OTP to your console (simulated email). Please check and enter it below.</p>
+    <form method="POST" action="{{ url_for('verify_otp') }}">
+        <div class="form-group">
+            <label for="otp">OTP Code</label>
+            <input type="text" class="form-control" id="otp" name="otp" required maxlength="6">
+        </div>
+        <button type="submit" class="btn btn-primary">Verify OTP</button>
+        <a href="{{ url_for('forgot_password') }}" class="btn btn-link">Request New OTP</a>
+    </form>
+</div>
+{% endblock %}

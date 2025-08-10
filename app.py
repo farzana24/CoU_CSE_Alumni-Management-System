@@ -5,10 +5,11 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, cur
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 from pytz import timezone
 from functools import wraps
+import random
 import os
 
 # Flask App Configuration
@@ -318,6 +319,17 @@ class Donation(db.Model):
     description = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class PasswordResetOTP(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(150), nullable=False)
+    otp = db.Column(db.String(6), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_type = db.Column(db.String(20), nullable=False)  # 'student', 'teacher', 'alumni'
+    is_used = db.Column(db.Boolean, default=False)
+    
+    def is_expired(self):
+        return datetime.utcnow() > self.created_at + timedelta(minutes=15)
+
 # Home Route
 @app.route("/")
 def home():
@@ -407,6 +419,152 @@ def student_login():
             flash('Invalid student credentials', 'error')
 
     return render_template('student_login.html')
+# Common forgot password route that redirects based on user type
+@app.route("/forgot-password", methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user_type = request.form.get('user_type')
+        
+        # Validate user type
+        if user_type not in ['student', 'teacher', 'alumni']:
+            flash('Invalid user type', 'error')
+            return redirect(url_for('forgot_password'))
+        
+        # Find user based on type
+        user = None
+        if user_type == 'student':
+            user = Student.query.filter_by(email=email).first()
+        elif user_type == 'teacher':
+            user = Teacher.query.filter_by(email=email).first()
+        elif user_type == 'alumni':
+            user = User.query.filter_by(email=email).first()
+        
+        if not user:
+            flash('No account found with that email', 'error')
+            return redirect(url_for('forgot_password'))
+        
+        # Generate OTP (6 digits)
+        otp = str(random.randint(100000, 999999))
+        
+        # Store OTP in database
+        new_otp = PasswordResetOTP(
+            email=email,
+            otp=otp,
+            user_type=user_type,
+            is_used=False
+        )
+        db.session.add(new_otp)
+        db.session.commit()
+        
+        # In a real app, you would send this via email
+        # For this implementation, we'll print to console
+        print(f"\n\nPassword reset OTP for {email} ({user_type}): {otp}\n\n")
+        
+        flash('OTP sent to console (simulated email)', 'info')
+        session['reset_email'] = email
+        session['reset_user_type'] = user_type
+        return redirect(url_for('verify_otp'))
+    
+    return render_template('forgot_password.html')
+
+# OTP verification route
+@app.route("/verify-otp", methods=['GET', 'POST'])
+def verify_otp():
+    if 'reset_email' not in session or 'reset_user_type' not in session:
+        flash('Please request password reset first', 'error')
+        return redirect(url_for('forgot_password'))
+    
+    if request.method == 'POST':
+        otp = request.form.get('otp')
+        email = session['reset_email']
+        user_type = session['reset_user_type']
+        
+        # Find the most recent valid OTP
+        otp_record = PasswordResetOTP.query.filter_by(
+            email=email,
+            user_type=user_type,
+            is_used=False
+        ).order_by(PasswordResetOTP.created_at.desc()).first()
+        
+        if not otp_record or otp_record.otp != otp:
+            flash('Invalid OTP', 'error')
+            return redirect(url_for('verify_otp'))
+        
+        if otp_record.is_expired():
+            flash('OTP has expired', 'error')
+            return redirect(url_for('forgot_password'))
+        
+        # Mark OTP as used
+        otp_record.is_used = True
+        db.session.commit()
+        
+        # Store verification in session
+        session['otp_verified'] = True
+        return redirect(url_for('reset_password'))
+    
+    return render_template('verify_otp.html')
+
+# Password reset route
+@app.route("/reset-password", methods=['GET', 'POST'])
+def reset_password():
+    if 'reset_email' not in session or 'reset_user_type' not in session:
+        flash('Please request password reset first', 'error')
+        return redirect(url_for('forgot_password'))
+    
+    if 'otp_verified' not in session or not session['otp_verified']:
+        flash('Please verify OTP first', 'error')
+        return redirect(url_for('verify_otp'))
+    
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return redirect(url_for('reset_password'))
+        
+        # Validate password strength
+        if (not any(char.isupper() for char in password) or
+           not any(char.islower() for char in password) or
+           not any(char.isdigit() for char in password) or
+           not any(char in '!@#$%^&*()_+-=[]{}|;:,.<>?/' for char in password) or
+           len(password) < 8):
+            flash('Password must contain at least one uppercase, one lowercase, one number, one special character, and be at least 8 characters long', 'error')
+            return redirect(url_for('reset_password'))
+        
+        # Update password based on user type
+        email = session['reset_email']
+        user_type = session['reset_user_type']
+        
+        if user_type == 'student':
+            user = Student.query.filter_by(email=email).first()
+            login_route = 'student_login'
+        elif user_type == 'teacher':
+            user = Teacher.query.filter_by(email=email).first()
+            login_route = 'teacher_login'
+        elif user_type == 'alumni':
+            user = User.query.filter_by(email=email).first()
+            login_route = 'login'
+        
+        if not user:
+            flash('User not found', 'error')
+            return redirect(url_for('forgot_password'))
+        
+        # Update password
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        user.password = hashed_password
+        db.session.commit()
+        
+        # Clear session
+        session.pop('reset_email', None)
+        session.pop('reset_user_type', None)
+        session.pop('otp_verified', None)
+        
+        flash('Password updated successfully! Please login with your new password', 'success')
+        return redirect(url_for(login_route))
+    
+    return render_template('reset_password.html')
 
 # Dashboard Route
 @app.route("/dashboard")
