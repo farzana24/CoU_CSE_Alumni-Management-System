@@ -20,6 +20,12 @@ app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
+
+# Solution: Add session cookie configuration
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Set a 30-minute session lifetime
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
@@ -32,6 +38,11 @@ migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
+
+
+@app.before_request
+def before_request():
+    session.permanent = True
 
 # Flask-Login User Loader
 @login_manager.user_loader
@@ -1996,7 +2007,7 @@ def donate_success():
             print("DB ERROR:", e)
 
     flash('Thank you for your donation!', 'success')
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('donate'))
 
 @app.route("/donate/fail", methods=['GET', 'POST'])
 def donate_fail():
