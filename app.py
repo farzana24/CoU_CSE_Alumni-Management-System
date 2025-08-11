@@ -623,8 +623,12 @@ def dashboard():
     if not current_user.alumni_details:
         flash('Please complete your profile first', 'warning')
         return redirect(url_for('user_details'))
-    return render_template('dashboard.html', alumni_details=current_user.alumni_details)
-
+    # Check if the alumni user is also an admin
+    is_admin = Admin.query.filter_by(alumni_id=current_user.alumni_details.id).first() is not None
+    
+    return render_template('dashboard.html', 
+                           alumni_details=current_user.alumni_details,
+                           is_admin=is_admin)
 @app.route("/teacher/dashboard")
 @login_required
 def teacher_dashboard():
