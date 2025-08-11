@@ -149,6 +149,31 @@
             grid-template-columns: 1fr;
             gap: 10px;
         }
+        /* Add to your style block */
+        .form-select {
+            display: block;
+            width: 100%;
+            padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #212529;
+            background-color: #fff;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 16px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            appearance: none;
+        }
+
+        .form-select:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
 
         /* Stack table cells vertically on small screens */
         @media (max-width: 576px) {
@@ -586,6 +611,7 @@
     </div>
 </div>
 {% endfor %}
+
 <div class="modal fade" id="addAdminModal" tabindex="-1" aria-labelledby="addAdminModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -596,22 +622,49 @@
             <div class="modal-body">
                 <form action="{{ url_for('add_admin') }}" method="POST">
                     <div class="mb-3">
-                        <label for="admin_email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="admin_email" name="email" required>
+                        <label class="form-label">Select Admin Type</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="admin_type" id="newAdmin" value="new" checked onclick="toggleAdminForm('new')">
+                            <label class="form-check-label" for="newAdmin">Create New Admin</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="admin_type" id="alumniAdmin" value="alumni" onclick="toggleAdminForm('alumni')">
+                            <label class="form-check-label" for="alumniAdmin">Promote Alumni to Admin</label>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="admin_username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="admin_username" name="username" required>
+
+                    <div id="newAdminForm">
+                        <div class="mb-3">
+                            <label for="admin_email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="admin_email" name="email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="admin_username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="admin_username" name="username">
+                        </div>
+                        <div class="mb-3">
+                            <label for="admin_password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="admin_password" name="password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="admin_confirm_password" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="admin_confirm_password" name="confirm_password">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="admin_password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="admin_password" name="password" required>
+
+                    <div id="alumniAdminForm" style="display: none;">
+                        <div class="mb-3">
+                            <label for="alumni_id" class="form-label">Select Alumni</label>
+                            <select class="form-select" id="alumni_id" name="alumni_id">
+                                <option value="none">-- Select Alumni --</option>
+                                {% for alumnus in alumni_pagination.items %}
+                                <option value="{{ alumnus.id }}">{{ alumnus.first_name }} {{ alumnus.last_name }} ({{ alumnus.cse_batch }})</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">This alumni will be able to login to admin portal with their existing credentials</small>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="admin_confirm_password" class="form-label">Confirm Password</label>
-                        <input type="password" class="form-control" id="admin_confirm_password" name="confirm_password"
-                            required>
-                    </div>
+
                     {% if current_user.is_super_admin %}
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="is_super_admin" name="is_super_admin">
@@ -619,9 +672,7 @@
                         <small class="form-text text-muted d-block">Super Admins can manage other admin accounts</small>
                     </div>
                     {% endif %}
-                    <div class="alert alert-info">
-                        <small>This will create a new administrator account with full system access.</small>
-                    </div>
+
                     <div class="text-end">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">Create Admin</button>
@@ -631,4 +682,30 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleAdminForm(type) {
+    if (type === 'new') {
+        document.getElementById('newAdminForm').style.display = 'block';
+        document.getElementById('alumniAdminForm').style.display = 'none';
+        // Make new admin fields required
+        document.getElementById('admin_email').required = true;
+        document.getElementById('admin_username').required = true;
+        document.getElementById('admin_password').required = true;
+        document.getElementById('admin_confirm_password').required = true;
+        // Make alumni field not required
+        document.getElementById('alumni_id').required = false;
+    } else {
+        document.getElementById('newAdminForm').style.display = 'none';
+        document.getElementById('alumniAdminForm').style.display = 'block';
+        // Make new admin fields not required
+        document.getElementById('admin_email').required = false;
+        document.getElementById('admin_username').required = false;
+        document.getElementById('admin_password').required = false;
+        document.getElementById('admin_confirm_password').required = false;
+        // Make alumni field required
+        document.getElementById('alumni_id').required = true;
+    }
+}
+</script>
 {% endblock %}

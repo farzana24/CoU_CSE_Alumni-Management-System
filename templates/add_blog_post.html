@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %} Add Blog Post {% endblock %}
+
+{% block style %}
+<style>
+    .form-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .snippet-container {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="form-container">
+        <h1>Add Blog Post</h1>
+        
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" class="form-control" id="title" name="title" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="content">Content</label>
+                <textarea class="form-control" id="content" name="content" rows="10" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Images</label>
+                <input type="file" class="form-control-file" name="images" multiple>
+            </div>
+            
+            <div id="code-snippets">
+                <h4>Code Snippets</h4>
+                <div class="snippet-container">
+                    <div class="form-group">
+                        <label>Language</label>
+                        <input type="text" class="form-control" name="snippet_language">
+                    </div>
+                    <div class="form-group">
+                        <label>Code</label>
+                        <textarea class="form-control" name="snippet_code" rows="5"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="button" class="btn btn-secondary mb-3" id="add-snippet">Add Another Code Snippet</button>
+            
+            <button type="submit" class="btn btn-primary mb-3">Submit</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('add-snippet').addEventListener('click', function() {
+        const snippetsContainer = document.getElementById('code-snippets');
+        const newSnippet = document.querySelector('.snippet-container').cloneNode(true);
+        
+        // Clear the values in the cloned snippet
+        const inputs = newSnippet.querySelectorAll('input, textarea');
+        inputs.forEach(input => input.value = '');
+        
+        snippetsContainer.appendChild(newSnippet);
+    });
+</script>
+{% endblock %}

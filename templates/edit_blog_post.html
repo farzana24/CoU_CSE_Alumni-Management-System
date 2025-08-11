@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %} Edit Blog Post {% endblock %}
+
+{% block style %}
+<style>
+    .form-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .snippet-container {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+    .existing-image {
+        margin-right: 10px;
+        margin-bottom: 10px;
+        position: relative;
+    }
+    .delete-checkbox {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="form-container">
+        <h1>Edit Blog Post</h1>
+        
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" class="form-control" id="title" name="title" value="{{ post.title }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="content">Content</label>
+                <textarea class="form-control" id="content" name="content" rows="10" required>{{ post.content }}</textarea>
+            </div>
+            
+            {% if post.images %}
+            <div class="form-group">
+                <label>Existing Images</label>
+                <div class="d-flex flex-wrap">
+                    {% for image in post.images %}
+                    <div class="existing-image">
+                        <img src="{{ url_for('static', filename='blog/' + image.filename) }}" width="150">
+                        <input type="checkbox" class="delete-checkbox" name="delete_images" value="{{ image.id }}">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label>Add New Images</label>
+                <input type="file" class="form-control-file" name="images" multiple>
+            </div>
+            
+            <div id="code-snippets">
+                <h4>Code Snippets</h4>
+                {% for snippet in post.code_snippets %}
+                <div class="snippet-container">
+                    <div class="form-group">
+                        <label>Language</label>
+                        <input type="text" class="form-control" name="snippet_language" value="{{ snippet.language }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Code</label>
+                        <textarea class="form-control" name="snippet_code" rows="5">{{ snippet.code }}</textarea>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="snippet-container">
+                    <div class="form-group">
+                        <label>Language</label>
+                        <input type="text" class="form-control" name="snippet_language">
+                    </div>
+                    <div class="form-group">
+                        <label>Code</label>
+                        <textarea class="form-control" name="snippet_code" rows="5"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="button" class="btn btn-secondary mb-3" id="add-snippet">Add Another Code Snippet</button>
+            
+            <button type="submit" class="btn btn-primary mb-3">Update Post</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('add-snippet').addEventListener('click', function() {
+        const snippetsContainer = document.getElementById('code-snippets');
+        const newSnippet = document.querySelector('.snippet-container').cloneNode(true);
+        
+        // Clear the values in the cloned snippet
+        const inputs = newSnippet.querySelectorAll('input, textarea');
+        inputs.forEach(input => input.value = '');
+        
+        snippetsContainer.appendChild(newSnippet);
+    });
+</script>
+{% endblock %}

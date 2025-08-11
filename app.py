@@ -41,6 +41,11 @@ def load_user(user_id):
         admin = Admin.query.get(real_id)
         if admin:
             admin.type = 'admin'
+            # If this is an alumni admin, we need to verify against their user password
+            if admin.alumni_id:
+                alumni = AlumniDetails.query.get(admin.alumni_id)
+                if alumni and alumni.user:
+                    admin.password = alumni.user.password
             return admin
     elif user_id.startswith('teacher_'):
         real_id = int(user_id.split('_')[1])
@@ -117,17 +122,27 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
     alumni_details = db.relationship('AlumniDetails', backref='user', uselist=False, cascade='all, delete-orphan')
+    def can_create_blog_posts(self):
+        """Check if this user can create blog posts (alumni)"""
+        return self.alumni_details is not None
 
 class Admin(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    password = db.Column(db.String(150), nullable=True)  # Made nullable for alumni admins
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     is_super_admin = db.Column(db.Boolean, default=False)
     last_login = db.Column(db.DateTime)
+    alumni_id = db.Column(db.Integer, db.ForeignKey('alumni_details.id'), nullable=True)  # New field
+    alumni = db.relationship('AlumniDetails', backref=db.backref('admin', uselist=False))
+    
     def get_id(self):
         return f'admin_{self.id}'
+    
+    def can_create_blog_posts(self):
+        """Admins can always create blog posts"""
+        return True
     
 def admin_required(f):
     @wraps(f)
@@ -187,6 +202,32 @@ class News(db.Model):
     def formatted_date(self):
         bd_timezone = timezone('Asia/Dhaka')
         return self.created_at.astimezone(bd_timezone).strftime('%B %d, %Y %I:%M %p')
+    
+class BlogPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    views = db.Column(db.Integer, default=0)
+    images = db.relationship('BlogImage', backref='post', lazy=True, cascade="all, delete-orphan")
+    code_snippets = db.relationship('CodeSnippet', backref='post', lazy=True, cascade="all, delete-orphan")
+    
+    # Add this relationship
+    user = db.relationship('User', backref=db.backref('blog_posts', lazy=True))
+
+class BlogImage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(200), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('blog_post.id'), nullable=False)
+    is_featured = db.Column(db.Boolean, default=False)  # For the main image
+
+class CodeSnippet(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    language = db.Column(db.String(50), nullable=False)
+    code = db.Column(db.Text, nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('blog_post.id'), nullable=False)
     
 class JobOpportunity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -295,6 +336,10 @@ class Teacher(db.Model, UserMixin):
     
     def get_id(self):
         return f'teacher_{self.id}'
+    
+    def can_create_blog_posts(self):
+        """Teachers can always create blog posts"""
+        return True
 
 class Student(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -310,6 +355,10 @@ class Student(db.Model, UserMixin):
     
     def get_id(self):
         return f'student_{self.id}'
+    
+    def can_create_blog_posts(self):
+        """Students cannot create blog posts"""
+        return False
 
 class Donation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -789,6 +838,7 @@ def admin_dashboard():
                          admin_list=admin_list)
 
 # Admin Panel Route
+
 @app.route("/admin-login", methods=['GET', 'POST'])
 def admin_login():
     if current_user.is_authenticated and hasattr(current_user, 'type'):
@@ -797,20 +847,45 @@ def admin_login():
         logout_user()
 
     if request.method == 'POST':
-        username = request.form.get('username')
+        username_or_email = request.form.get('username')
         password = request.form.get('password')
         
-        admin = Admin.query.filter_by(username=username).first()
+        # First try to find as regular admin
+        admin = Admin.query.filter(
+            (Admin.username == username_or_email) | 
+            (Admin.email == username_or_email)
+        ).first()
         
-        if admin and check_password_hash(admin.password, password):
-            admin.last_login = datetime.now(timezone('Asia/Dhaka'))
-            db.session.commit()
-            login_user(admin)
-            admin.type = 'admin'  # Set type after login
-            flash('Logged in successfully as admin', 'success')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Invalid admin credentials', 'error')
+        # If not found as admin, check if it's an alumni trying to login as admin
+        if not admin:
+            # Check if it's an alumni who is also an admin
+            user = User.query.filter(
+                (User.username == username_or_email) | 
+                (User.email == username_or_email)
+            ).first()
+            
+            if user and user.alumni_details:
+                admin = Admin.query.filter_by(alumni_id=user.alumni_details.id).first()
+        
+        if admin:
+            # For regular admins, check their password
+            if admin.password and check_password_hash(admin.password, password):
+                admin.last_login = datetime.now(timezone('Asia/Dhaka'))
+                db.session.commit()
+                login_user(admin)
+                admin.type = 'admin'
+                flash('Logged in successfully as admin', 'success')
+                return redirect(url_for('admin_dashboard'))
+            # For alumni admins, check their user password
+            elif admin.alumni_id and admin.alumni.user and check_password_hash(admin.alumni.user.password, password):
+                admin.last_login = datetime.now(timezone('Asia/Dhaka'))
+                db.session.commit()
+                login_user(admin)
+                admin.type = 'admin'
+                flash('Logged in successfully as admin', 'success')
+                return redirect(url_for('admin_dashboard'))
+        
+        flash('Invalid admin credentials', 'error')
             
     return render_template('admin_login.html')
 
@@ -819,42 +894,59 @@ def admin_login():
 @admin_required
 def add_admin():
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
+        is_super_admin = request.form.get('is_super_admin') == 'on'
         
-        # Only super admins can create other super admins
-        is_super_admin = False
-        if current_user.is_super_admin and request.form.get('is_super_admin'):
-            is_super_admin = True
-        
-        # Validation
-        if password != confirm_password:
-            flash('Passwords do not match', 'error')
-            return redirect(url_for('admin_dashboard'))
-        
-        # Check if admin already exists
-        if Admin.query.filter((Admin.username == username) | (Admin.email == email)).first():
-            flash('Admin with that username or email already exists', 'error')
-            return redirect(url_for('admin_dashboard'))
-        
-        # Create new admin user
-        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-        new_admin = Admin(
-            username=username,
-            email=email,
-            password=hashed_password,
-            is_super_admin=is_super_admin
-        )
-        
-        try:
-            db.session.add(new_admin)
-            db.session.commit()
-            flash('New admin created successfully!', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating admin: {str(e)}', 'error')
+        # For alumni promotion
+        if request.form.get('alumni_id'):
+            alumni = AlumniDetails.query.get_or_404(request.form['alumni_id'])
+            user = alumni.user
+            
+            # Create admin record using alumni's credentials
+            new_admin = Admin(
+                username=user.username,
+                email=user.email,
+                password=user.password,  # Use existing hashed password
+                is_super_admin=is_super_admin,
+                alumni_id=alumni.id
+            )
+            
+            try:
+                db.session.add(new_admin)
+                db.session.commit()
+                flash(f'{alumni.first_name} promoted to admin using existing credentials', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error: {str(e)}', 'error')
+        else:
+            # Creating a brand new admin (original functionality)
+            username = request.form.get('username')
+            email = request.form.get('email')
+            password = request.form.get('password')
+            confirm_password = request.form.get('confirm_password')
+            
+            if password != confirm_password:
+                flash('Passwords do not match', 'error')
+                return redirect(url_for('admin_dashboard'))
+            
+            if Admin.query.filter((Admin.username == username) | (Admin.email == email)).first():
+                flash('Admin with that username or email already exists', 'error')
+                return redirect(url_for('admin_dashboard'))
+            
+            hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+            new_admin = Admin(
+                username=username,
+                email=email,
+                password=hashed_password,
+                is_super_admin=is_super_admin
+            )
+            
+            try:
+                db.session.add(new_admin)
+                db.session.commit()
+                flash('New admin created successfully!', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error creating admin: {str(e)}', 'error')
         
         return redirect(url_for('admin_dashboard'))
     
@@ -1914,7 +2006,131 @@ def donate_cancel():
 
 @app.route("/blog")
 def blog():
-    return render_template('blog.html')
+    posts = BlogPost.query.options(db.joinedload(BlogPost.user)).order_by(BlogPost.created_at.desc()).all()
+    return render_template('blog.html', posts=posts)
+
+@app.route("/blog/<int:post_id>")
+def blog_post(post_id):
+    post = BlogPost.query.get_or_404(post_id)
+    post.views += 1
+    db.session.commit()
+    return render_template('blog_post.html', post=post)
+
+@app.route("/blog/add", methods=['GET', 'POST'])
+@login_required
+def add_blog_post():
+    if not current_user.can_create_blog_posts():
+        flash('You are not authorized to add blog posts', 'danger')
+        return redirect(url_for('blog'))
+    
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        
+        post = BlogPost(title=title, content=content, user_id=current_user.id)
+        db.session.add(post)
+        db.session.commit()
+        
+        # Handle multiple image uploads
+        if 'images' in request.files:
+            for image in request.files.getlist('images'):
+                if image.filename != '':
+                    filename = secure_filename(image.filename)
+                    save_path = os.path.join('static', 'blog', filename)
+                    image.save(save_path)
+                    
+                    blog_image = BlogImage(filename=filename, post_id=post.id)
+                    db.session.add(blog_image)
+        
+        # Handle code snippets
+        languages = request.form.getlist('snippet_language')
+        codes = request.form.getlist('snippet_code')
+        
+        for lang, code in zip(languages, codes):
+            if lang and code:
+                snippet = CodeSnippet(language=lang, code=code, post_id=post.id)
+                db.session.add(snippet)
+        
+        db.session.commit()
+        flash('Blog post added successfully', 'success')
+        return redirect(url_for('blog'))
+    
+    return render_template('add_blog_post.html')
+
+@app.route("/blog/edit/<int:post_id>", methods=['GET', 'POST'])
+@login_required
+def edit_blog_post(post_id):
+    post = BlogPost.query.get_or_404(post_id)
+    
+    # Authorization check - admin or original author
+    if not (current_user.type == 'admin' or current_user.id == post.user_id):
+        flash('You are not authorized to edit this post', 'danger')
+        return redirect(url_for('blog'))
+    
+    if request.method == 'POST':
+        post.title = request.form.get('title')
+        post.content = request.form.get('content')
+        
+        # Handle image deletions
+        if 'delete_images' in request.form:
+            for image_id in request.form.getlist('delete_images'):
+                image = BlogImage.query.get(image_id)
+                if image:
+                    # Delete file from filesystem
+                    file_path = os.path.join('static', 'blog', image.filename)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                    db.session.delete(image)
+        
+        # Handle new image uploads
+        if 'images' in request.files:
+            for image in request.files.getlist('images'):
+                if image.filename != '':
+                    filename = secure_filename(image.filename)
+                    save_path = os.path.join('static', 'blog', filename)
+                    image.save(save_path)
+                    
+                    blog_image = BlogImage(filename=filename, post_id=post.id)
+                    db.session.add(blog_image)
+        
+        # Handle code snippets
+        # First delete existing snippets (for simplicity, you can optimize this)
+        CodeSnippet.query.filter_by(post_id=post.id).delete()
+        
+        languages = request.form.getlist('snippet_language')
+        codes = request.form.getlist('snippet_code')
+        
+        for lang, code in zip(languages, codes):
+            if lang and code:
+                snippet = CodeSnippet(language=lang, code=code, post_id=post.id)
+                db.session.add(snippet)
+        
+        db.session.commit()
+        flash('Blog post updated successfully', 'success')
+        return redirect(url_for('blog_post', post_id=post.id))
+    
+    return render_template('edit_blog_post.html', post=post)
+
+@app.route("/blog/delete/<int:post_id>", methods=['POST'])
+@login_required
+def delete_blog_post(post_id):
+    post = BlogPost.query.get_or_404(post_id)
+    
+    # Authorization check - admin or original author
+    if not (current_user.type == 'admin' or current_user.id == post.user_id):
+        flash('You are not authorized to delete this post', 'danger')
+        return redirect(url_for('blog'))
+    
+    # Delete associated images from filesystem
+    for image in post.images:
+        file_path = os.path.join('static', 'blog', image.filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    
+    db.session.delete(post)
+    db.session.commit()
+    flash('Blog post deleted successfully', 'success')
+    return redirect(url_for('blog'))
 
 # Run the App
 if __name__ == "__main__":

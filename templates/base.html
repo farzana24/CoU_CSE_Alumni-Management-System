@@ -387,8 +387,7 @@
                 </div>
                 <a href="{{ url_for('job_opportunities') }}">Job Opportunities</a>
                 <a href="{{ url_for('event_list') }}">Event List</a>
-                <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-                <a href="{{ url_for('admin_logout') }}">Logout Admin</a>
+                
             
             {% elif current_user.type == 'teacher' %}
                 <a href="{{ url_for('teacher_dashboard') }}">Dashboard</a>
