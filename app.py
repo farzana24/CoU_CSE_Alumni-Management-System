@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, abort, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_ 
+from sqlalchemy.orm import joinedload
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
@@ -847,12 +848,22 @@ def admin_dashboard():
     contacts = Contact.query.all()
     
     # Paginate alumni instead of getting all at once
-    alumni_pagination = AlumniDetails.query.order_by(
-        AlumniDetails.id.desc()  # Order by newest first
-    ).paginate(page=page, per_page=5, error_out=False)
-    
+    alumni_pagination = (
+        AlumniDetails.query
+    .options(joinedload(AlumniDetails.user))  # so alumnus.user is preloaded
+    .join(User)
+    .filter(User.is_approved == True)  # <-- filter approved only
+    .order_by(AlumniDetails.id.desc())
+    .paginate(page=page, per_page=5, error_out=False) # Order by newest first
+    )
+    all_alumni = AlumniDetails.query.all()
     # Get total count for stats
-    alumni_count = AlumniDetails.query.count()
+    approved_alumni_count = (
+    AlumniDetails.query
+    .join(User)
+    .filter(User.is_approved == True)
+    .count()
+    )
     
     # Only fetch admin list for super admins
     admin_list = []
@@ -875,12 +886,13 @@ def admin_dashboard():
         ]
     return render_template('admin_dashboard.html', 
                          users=users, 
-                         alumni_count=alumni_count,
+                         alumni_count=approved_alumni_count,
                          alumni_pagination=alumni_pagination,
                          contacts=contacts,
                          pending_students=pending_students,
                          visible_pending_alumni=visible_pending_alumni,
                          donations=donations,
+                         all_alumni = all_alumni,
                          admin_list=admin_list)
 
 # Admin Panel Route

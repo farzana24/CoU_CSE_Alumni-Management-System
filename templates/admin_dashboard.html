@@ -737,7 +737,7 @@
                             <label for="alumni_id" class="form-label">Select Alumni</label>
                             <select class="form-select" id="alumni_id" name="alumni_id">
                                 <option value="none">-- Select Alumni --</option>
-                                {% for alumnus in alumni_pagination.items %}
+                                {% for alumnus in all_alumni %}
                                 <option value="{{ alumnus.id }}">{{ alumnus.first_name }} {{ alumnus.last_name }} ({{ alumnus.cse_batch }})</option>
                                 {% endfor %}
                             </select>
