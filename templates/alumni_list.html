@@ -94,6 +94,7 @@
 <div class="container">
     <div class="row">
         {% for alumnus in alumni %}
+        {% if alumnus.user.is_approved %}
         <div class="col-md-6 mb-4">
             <div class="alumni-box" data-bs-toggle="modal" data-bs-target="#alumniModal{{ alumnus.id }}">
                 {% if alumnus.alumni_pic %}
@@ -114,6 +115,7 @@
                 <p><i class="fas fa-envelope"></i> {{ alumnus.user.email }}</p>
             </div>
         </div>
+        {% endif %}
         {% endfor %}
     </div>
 </div>

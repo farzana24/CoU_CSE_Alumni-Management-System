@@ -133,6 +133,10 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
     alumni_details = db.relationship('AlumniDetails', backref='user', uselist=False, cascade='all, delete-orphan')
+      # New fields for approval
+    is_approved = db.Column(db.Boolean, default=False, nullable=False)
+    approved_by_id = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
     def can_create_blog_posts(self):
         """Check if this user can create blog posts (alumni)"""
         return self.alumni_details is not None
@@ -141,7 +145,7 @@ class Admin(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=True)  # Made nullable for alumni admins
+    password = db.Column(db.String(150), nullable=False)  # Made nullable for alumni admins
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     is_super_admin = db.Column(db.Boolean, default=False)
     last_login = db.Column(db.DateTime)
@@ -333,9 +337,9 @@ class Event(db.Model):
 
 class Teacher(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
+    username = db.Column(db.String(150), unique=True, nullable=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    password = db.Column(db.String(150), nullable=True)
     name = db.Column(db.String(150), nullable=False)
     designation = db.Column(db.String(100), nullable=False)
     department = db.Column(db.String(100), default="Computer Science and Engineering")
@@ -363,6 +367,10 @@ class Student(db.Model, UserMixin):
     phone = db.Column(db.String(20), nullable=True)
     photo = db.Column(db.String(150), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    # New fields for approval
+    is_approved = db.Column(db.Boolean, default=False, nullable=False)
+    approved_by_id = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
     
     def get_id(self):
         return f'student_{self.id}'
@@ -409,7 +417,11 @@ def login():
 
         # Check if user exists
         user = User.query.filter((User.username == username_or_email) | (User.email == username_or_email)).first()
+
         if user and check_password_hash(user.password, password):
+            if not user.is_approved:
+                flash('Your account is awaiting admin approval. Please check back later.', 'warning')
+                return redirect(url_for('login'))
             login_user(user)
             flash('Logged in successfully', 'success')
             return redirect(url_for('dashboard'))
@@ -473,6 +485,9 @@ def student_login():
         ).first()
 
         if student and check_password_hash(student.password, password):
+            if not student.is_approved:
+                flash('Your student account is awaiting admin approval. Please check back later.', 'warning')
+                return redirect(url_for('student_login'))
             login_user(student)
             flash('Logged in successfully as student', 'success')
             return redirect(url_for('student_dashboard'))
@@ -844,11 +859,27 @@ def admin_dashboard():
     if current_user.is_super_admin:
         admin_list = Admin.query.filter(Admin.id != current_user.id).all()
     donations = Donation.query.order_by(Donation.created_at.desc()).all()   
+    pending_students = []
+    if current_user.is_super_admin:
+        pending_students = Student.query.filter_by(is_approved=False).all()
+    all_pending_alumni = User.query.join(AlumniDetails).filter(User.is_approved == False).all()
+    visible_pending_alumni = []
+
+    if current_user.is_super_admin:
+        visible_pending_alumni = all_pending_alumni
+    elif current_user.alumni_id:  # For alumni admins
+        admin_batch = current_user.alumni.cse_batch
+        visible_pending_alumni = [
+            user for user in all_pending_alumni
+            if user.alumni_details and user.alumni_details.cse_batch == admin_batch
+        ]
     return render_template('admin_dashboard.html', 
                          users=users, 
                          alumni_count=alumni_count,
                          alumni_pagination=alumni_pagination,
                          contacts=contacts,
+                         pending_students=pending_students,
+                         visible_pending_alumni=visible_pending_alumni,
                          donations=donations,
                          admin_list=admin_list)
 
@@ -989,6 +1020,72 @@ def delete_admin(id):
         db.session.rollback()
         flash(f'Error deleting admin: {str(e)}', 'error')
     
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/approve_alumni/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def approve_alumni(user_id):
+    user_to_approve = User.query.get_or_404(user_id)
+    
+    # Authorization check
+    is_authorized = current_user.is_super_admin or (current_user.alumni_id and current_user.alumni.cse_batch == user_to_approve.alumni_details.cse_batch)
+    if not is_authorized:
+        flash('You are not authorized to perform this action.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+    user_to_approve.is_approved = True
+    user_to_approve.approved_by_id = current_user.id
+    user_to_approve.approved_at = datetime.utcnow()
+    db.session.commit()
+    flash(f'Alumni {user_to_approve.username} has been approved.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/deny_alumni/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def deny_alumni(user_id):
+    user_to_deny = User.query.get_or_404(user_id)
+
+    # Authorization check
+    is_authorized = current_user.is_super_admin or (current_user.alumni_id and current_user.alumni.cse_batch == user_to_deny.alumni_details.cse_batch)
+    if not is_authorized:
+        flash('You are not authorized to perform this action.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+    db.session.delete(user_to_deny)
+    db.session.commit()
+    flash(f'Alumni registration for {user_to_deny.username} has been denied and deleted.', 'warning')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/approve_student/<int:student_id>', methods=['POST'])
+@login_required
+@admin_required
+def approve_student(student_id):
+    if not current_user.is_super_admin:
+        flash('Only super admins can approve students.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    student = Student.query.get_or_404(student_id)
+    student.is_approved = True
+    student.approved_by_id = current_user.id
+    student.approved_at = datetime.utcnow()
+    db.session.commit()
+    flash(f'Student {student.username} has been approved.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/deny_student/<int:student_id>', methods=['POST'])
+@login_required
+@admin_required
+def deny_student(student_id):
+    if not current_user.is_super_admin:
+        flash('Only super admins can deny students.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+        
+    student = Student.query.get_or_404(student_id)
+    db.session.delete(student)
+    db.session.commit()
+    flash(f'Student registration for {student.username} has been denied and deleted.', 'warning')
     return redirect(url_for('admin_dashboard'))
 
 @app.route("/add-news", methods=['POST'])
@@ -1184,7 +1281,7 @@ def signup():
         # Log in the user immediately after signup
         login_user(new_user)
 
-        flash('Signup successful! Please fill in your details.', 'success')
+        flash('Signup successful! Please fill in your alumni details to complete your registration for approval.', 'success')
         return redirect(url_for('user_details'))
 
     return render_template('signup.html')
@@ -1338,13 +1435,14 @@ def student_signup():
             name=name,
             student_id=student_id,
             batch=batch,
-            phone=phone
+            phone=phone,
+            is_approved=False
         )
 
         db.session.add(new_student)
         db.session.commit()
 
-        flash('Student account created successfully!', 'success')
+        flash('Student account created! Your registration is pending approval from an admin.', 'success')
         return redirect(url_for('student_login'))
 
     return render_template('student_signup.html')
@@ -1354,7 +1452,9 @@ def student_signup():
 @login_required
 def user_details():
     if current_user.alumni_details:
-        return redirect(url_for('dashboard'))
+        logout_user()
+        flash('Your profile is complete and is awaiting admin approval.', 'info')
+        return redirect(url_for('login'))
     
     if request.method == 'POST':
         first_name = request.form.get('first_name')
@@ -1407,8 +1507,10 @@ def user_details():
         
         db.session.add(new_details)
         db.session.commit()
-        flash('Your details have been saved successfully', 'success')
-        return redirect(url_for('dashboard'))
+        logout_user()
+        flash('Your details have been submitted. You will be able to log in once an admin approves your account.', 'success')
+        return redirect(url_for('login'))
+
 
     return render_template('user_details.html')
 
