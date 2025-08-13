@@ -1771,7 +1771,8 @@ def alumni_list():
     sort_by = request.args.get('sort_by', 'name')  # default sort by name
 
     # Create base query
-    query = AlumniDetails.query.join(User)
+    query = AlumniDetails.query.join(User).filter(User.is_approved == True)
+
     
     # Apply search filter if search term is provided
     if search_query:
@@ -1781,6 +1782,7 @@ def alumni_list():
                 AlumniDetails.last_name.ilike(f'%{search_query}%'),
                 AlumniDetails.cse_batch.ilike(f'%{search_query}%'),
                 AlumniDetails.company_name.ilike(f'%{search_query}%'),
+                AlumniDetails.blood_group.ilike(f'%{search_query}%'),
                 AlumniDetails.position.ilike(f'%{search_query}%')
             )
         )
@@ -1792,7 +1794,7 @@ def alumni_list():
 
 
     # Apply pagination
-    pagination = query.paginate(page=page, per_page=4, error_out=False)
+    pagination = query.paginate(page=page, per_page=6, error_out=False)
     alumni = pagination.items
     
     return render_template('alumni_list.html', alumni=alumni, pagination=pagination)
